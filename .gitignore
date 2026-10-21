@@ -1,0 +1,59 @@
+# Generated outputs and instrumentation
+/out/
+**/build/
+**/.gradle/
+**/.cxx/
+/android_port/generated/
+/android_port/local.properties
+/gmon.out
+*.obj
+*.o
+*.exe
+*.dll
+*.log
+*.pyc
+__pycache__/
+
+# Never commit proprietary game dumps, derived caches, or distributed binaries
+*.sfc
+*.smc
+*.rom
+*.srm
+*.iso
+*.xbe
+*.xex
+*.apk
+*.aab
+*.bin
+
+# Signing credentials and local accounts
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.pass
+*.key
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-wal
+*.db-shm
+*.env
+.env.*
+!*.env.example
+
+# IDE and OS-specific files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Hosted infrastructure and local deployment material
+/R*_Private_*/
+/server/
+/Server-Update/
+*.service
+/UPDATE_SERVER.ps1
+/install_r*.py

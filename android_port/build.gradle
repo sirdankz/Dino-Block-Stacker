@@ -1,0 +1,4 @@
+buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:8.5.2' } }
+allprojects { repositories { google(); mavenCentral() } }
+
+if (System.getenv('DBS_LINT_MAVEN')) { allprojects { repositories { maven { url uri(System.getenv('DBS_LINT_MAVEN')); metadataSources { mavenPom(); artifact() } } } } }

@@ -1,0 +1,32 @@
+import groovy.json.JsonSlurper
+def identity = new JsonSlurper().parse(file('../../release_identity.json'))
+apply plugin: 'com.android.application'
+android {
+    namespace 'org.dinoblockstacker.app'
+    compileSdk 34
+    ndkVersion '27.3.13750724'
+    defaultConfig {
+        applicationId 'org.dinoblockstacker.app'
+        minSdk 24
+        targetSdk 34
+        versionCode 10000
+        versionName identity.version
+        externalNativeBuild { cmake { arguments '-DANDROID_STL=c++_static', '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'; abiFilters 'arm64-v8a', 'x86_64' } }
+    }
+    externalNativeBuild { cmake {
+        path 'src/main/cpp/CMakeLists.txt'
+        version '3.22.1'
+        buildStagingDirectory "${System.getProperty('java.io.tmpdir')}/ta-a1-native-${Integer.toHexString(rootDir.absolutePath.hashCode())}"
+    } }
+    signingConfigs {
+        release {
+            if (System.getenv('DBS_SIGNING_STORE_FILE')) {
+                storeFile file(System.getenv('DBS_SIGNING_STORE_FILE'))
+                storePassword System.getenv('DBS_SIGNING_STORE_PASSWORD')
+                keyAlias 'dinoblockstacker'
+                keyPassword System.getenv('DBS_SIGNING_STORE_PASSWORD')
+            }
+        }
+    }
+    buildTypes { debug { minifyEnabled false }; release { minifyEnabled false; debuggable false; signingConfig signingConfigs.release } }
+}

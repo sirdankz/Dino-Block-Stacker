@@ -1,0 +1,9 @@
+.gradle/
+.cxx/
+app/build/
+app/.cxx/
+generated/
+local.properties
+*.keystore
+*.jks
+__pycache__/
