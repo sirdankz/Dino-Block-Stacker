@@ -29,7 +29,7 @@ New-Item -ItemType Directory -Force (Join-Path $root 'out\DinoBlockStackerAndroi
 $args=@('--no-daemon',':app:assembleRelease');if($SkipLint){$args+=@('-x',':app:lintVitalAnalyzeRelease','-x',':app:lintVitalReportRelease','-x',':app:lintVitalRelease')};if($Offline){$args=@('--offline')+$args}
 Push-Location (Join-Path $root 'android_port')
 try{& (Join-Path $GradleRoot 'bin\gradle.bat') @args;if($LASTEXITCODE -ne 0){throw 'Android APK build failed.'}}finally{Pop-Location;Remove-Item Env:DBS_SIGNING_STORE_PASSWORD -ErrorAction SilentlyContinue;Remove-Item Env:DBS_SIGNING_STORE_FILE -ErrorAction SilentlyContinue}
-$apk=Join-Path $root 'android_port\app\build\outputs\apk\release\app-release.apk';$dest=Join-Path $root 'out\DinoBlockStackerAndroid\DinoBlockStacker-1.0.0.apk';Copy-Item -LiteralPath $apk -Destination $dest -Force
+$apk=Join-Path $root 'android_port\app\build\outputs\apk\release\app-release.apk';$dest=Join-Path $root 'out\DinoBlockStackerAndroid\DinoBlockStacker-1.0.1.apk';Copy-Item -LiteralPath $apk -Destination $dest -Force
 & (Join-Path $SdkRoot 'build-tools\34.0.0\apksigner.bat') verify --verbose $dest
 if($LASTEXITCODE -ne 0){throw 'APK signature verification failed.'}
 Write-Host "APK READY: $dest" -ForegroundColor Green

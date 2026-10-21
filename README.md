@@ -11,6 +11,7 @@ The application does **not** include the original game ROM, graphics, characters
 - Offline play and LAN multiplayer
 - Public online play using the project's hosted service
 - Gamepad support on both platforms and on-screen controls on Android
+- Customizable Android touchscreen buttons with per-button position and size; Always Show, Auto-hide, and Off modes
 - ROM import and compatibility verification before gameplay
 
 ## Downloads
@@ -19,9 +20,9 @@ Prebuilt releases are available from the repository's **Releases** page:
 
 | Platform | Release file |
 | --- | --- |
-| Original Xbox ZIP | `DinoBlockStacker-v1.0.0-Xbox.zip` |
-| Android | `DinoBlockStacker-v1.0.0.apk` |
-| Source archive | `DinoBlockStacker-v1.0.0-Xbox.zip` |
+| Original Xbox ZIP | `DinoBlockStacker-v1.0.1-Xbox.zip` |
+| Android | `DinoBlockStacker-v1.0.1.apk` |
+| Source archive | GitHub release tag: Source code (zip) |
 
 **No game ROM is included with any download.** A compatible, unheadered 1 MiB SNES ROM is required. ROM compatibility is checked against the expected SHA-256 value. Each user is responsible for obtaining and using game files lawfully.
 
@@ -88,7 +89,7 @@ From the repository root:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\BUILD_DINO_ANDROID.ps1
 ```
 
-Output: `out\DinoBlockStackerAndroid\DinoBlockStacker-1.0.0.apk`
+Output: `out\DinoBlockStackerAndroid\DinoBlockStacker-1.0.1.apk`
 
 The script accepts `-SdkRoot`, `-GradleRoot`, and `-JdkRoot` overrides. The default Python interpreter is `C:\Python314\python.exe`, with `python` on `PATH` used as a fallback.
 

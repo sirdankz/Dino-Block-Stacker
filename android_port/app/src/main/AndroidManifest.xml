@@ -11,6 +11,7 @@
   <activity android:name=".SetupActivity" android:exported="true" android:screenOrientation="sensorLandscape">
    <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
   </activity>
+  <activity android:name=".TouchLayoutActivity" android:exported="false" android:screenOrientation="sensorLandscape" />
   <activity android:name=".GameActivity" android:launchMode="singleTop" android:exported="false" android:screenOrientation="sensorLandscape" android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|layoutDirection|locale" />
  </application>
 </manifest>
