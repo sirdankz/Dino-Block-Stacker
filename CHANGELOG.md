@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.4
+
+Larger population counters centered above menu titles.
+
 ## 1.0.3
 
 Public 3-4 player AUTO/FOCUS parties, centered boards, same-room rematches, speed requests, separate party standings, and egg ranks.

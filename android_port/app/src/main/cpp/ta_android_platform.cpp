@@ -85,9 +85,10 @@ static void present(const uint32_t*p,unsigned height){
   if(revision!=opponentRevision||oldRows!=rows){partyBlit(peers,rows,l.peer[0],opponent,224,0,224);revision=opponentRevision;oldRows=rows;}
   memcpy(displayFrame,peers,512*rows*4);partyBlit(displayFrame,rows,l.local,p,512,0,224,224-l.localSourceY,l.localSourceY);height=rows;
  }
- static uint32_t hud[512*11];unsigned hw=ta_population_image(hud,512,&population,height==480);
- unsigned hx=height==480?5:512-hw-5,hy=height==480?height-11:1;
- for(unsigned y=0;y<11;y++)memcpy(displayFrame+(hy+y)*512+hx,hud+y*512,(hw>507?507:hw)*4);
+ static uint32_t hud[512*TA_POPULATION_MAX_HEIGHT];unsigned menu=height==480;
+ unsigned hw=ta_population_image(hud,512,&population,menu),hh=ta_population_height(menu);
+ unsigned hx=menu?(512-hw)/2:512-hw-5,hy=menu?6:1;
+ for(unsigned y=0;y<hh;y++)memcpy(displayFrame+(hy+y)*512+hx,hud+y*512,hw*4);
  frameHeight=height;frameRevision++;}
  auto now=Clock::now();if(nextFrame<now-std::chrono::milliseconds(100))nextFrame=now;nextFrame+=std::chrono::nanoseconds(1000000000LL/60);std::this_thread::sleep_until(nextFrame);
 }

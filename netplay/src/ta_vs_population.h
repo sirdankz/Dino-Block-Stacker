@@ -11,11 +11,23 @@ static inline void ta_population_text(uint32_t*out,unsigned stride,unsigned widt
   int px=x+(int)((k*6+xx)*scale+dx),py=y+(int)(yy*scale+dy);if(px>=0&&py>=0&&(unsigned)px<width&&(unsigned)py<height)out[py*stride+px]=color;
  }}
 }
+#define TA_POPULATION_MAX_HEIGHT 22u
+static inline unsigned ta_population_height(unsigned menu){return menu?22u:11u;}
+/* Keep every label legible even when the registered-account count grows. */
+static inline void ta_population_count(char out[12],unsigned n){
+ if(n>=1000000u)snprintf(out,12,"%uM",n/1000000u);
+ else if(n>=10000u)snprintf(out,12,"%uK",n/1000u);
+ else snprintf(out,12,"%u",n);
+}
 static inline unsigned ta_population_image(uint32_t*out,unsigned stride,const TaPopulation*p,unsigned menu){
- char text[96];if(p->known){if(menu)snprintf(text,sizeof text,"ACCOUNTS %u   IN-GAME %u   ONLINE %u",p->accounts,p->ingame,p->online);else snprintf(text,sizeof text,"IN-GAME %u   ONLINE %u",p->ingame,p->online);}
- else snprintf(text,sizeof text,menu?"ACCOUNTS --   IN-GAME --   ONLINE --":"IN-GAME --   ONLINE --");
- unsigned w=0;while(text[w])w++;w=w*6+8;if(w>512)w=512;
- for(unsigned y=0;y<11;y++)for(unsigned x=0;x<w;x++)out[y*stride+x]=0x00101928;
- ta_population_text(out,stride,w,11,4,2,text,0x0096e3b2,1);return w;
+ char text[96],a[12],g[12],o[12];
+ if(p->known){ta_population_count(a,p->accounts);ta_population_count(g,p->ingame);ta_population_count(o,p->online);
+  if(menu)snprintf(text,sizeof text,"ACCOUNTS %s IN-GAME %s ONLINE %s",a,g,o);
+  else snprintf(text,sizeof text,"IN-GAME %s   ONLINE %s",g,o);
+ }else snprintf(text,sizeof text,menu?"ACCOUNTS -- IN-GAME -- ONLINE --":"IN-GAME --   ONLINE --");
+ unsigned scale=menu?2u:1u,height=ta_population_height(menu),padding=4u*scale;
+ unsigned w=0;while(text[w])w++;w=w*6u*scale+2u*padding;if(w>512)w=512;
+ for(unsigned y=0;y<height;y++)for(unsigned x=0;x<w;x++)out[y*stride+x]=0x00101928;
+ ta_population_text(out,stride,w,height,padding,2u*scale,text,0x0096e3b2,scale);return w;
 }
 #endif

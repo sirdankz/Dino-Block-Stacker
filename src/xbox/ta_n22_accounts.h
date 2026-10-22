@@ -62,7 +62,7 @@ static void accountButtonLine(int x,int y,const char*line){
  }
 }
 static void accountFrame(const char*title,const char*sub){
- ta_n17_backdrop();ta_vs_lan_text(screen,36,34,"DINO BLOCK STACKER",0x007dd9e8,3);ta_vs_lan_text(screen,438,34,"R140",uiMuted,2);ta_vs_lan_text(screen,36,65,title,uiText,4);
+ ta_n17_backdrop();ta_vs_lan_text(screen,36,34,"DINO BLOCK STACKER",0x007dd9e8,3);ta_vs_lan_text(screen,438,34,"R141",uiMuted,2);ta_vs_lan_text(screen,36,65,title,uiText,4);
  if(sub)ta_vs_lan_text(screen,36,97,sub,uiMuted,2);
  accountRect(26,135,460,1,0x003a5363);ta_n17_panel(26,143,460,252);ta_n17_panel(26,403,460,55);
 }

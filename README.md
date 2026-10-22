@@ -27,8 +27,8 @@ Prebuilt releases are available from the repository's **Releases** page:
 
 | Platform | Release file |
 | --- | --- |
-| Original Xbox ZIP | `DinoBlockStacker-v1.0.3-Xbox.zip` |
-| Android | `DinoBlockStacker-v1.0.3.apk` |
+| Original Xbox ZIP | `DinoBlockStacker-v1.0.4-Xbox.zip` |
+| Android | `DinoBlockStacker-v1.0.4.apk` |
 | Original Xbox executable | `default.xbe` |
 | Source archive | GitHub source archives |
 
