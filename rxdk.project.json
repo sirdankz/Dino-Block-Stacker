@@ -40,7 +40,8 @@
         "netplay\\src\\ta_vs_preview.c",
         "netplay\\src\\ta_vs_start.c",
         "netplay/src/ta_vs_account.c",
-        "third_party/monocypher/monocypher.c"
+        "third_party/monocypher/monocypher.c",
+        "netplay/src/ta_vs_party.c"
       ],
       "libraries": [
         "libxapi.lib",
@@ -294,7 +295,8 @@
         "netplay\\src\\ta_vs_preview.c",
         "netplay\\src\\ta_vs_start.c",
         "netplay/src/ta_vs_account.c",
-        "third_party/monocypher/monocypher.c"
+        "third_party/monocypher/monocypher.c",
+        "netplay/src/ta_vs_party.c"
       ],
       "libraries": [
         "libxapi.lib",

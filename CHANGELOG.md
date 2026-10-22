@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3
+
+Public 3-4 player AUTO/FOCUS parties, centered boards, same-room rematches, speed requests, separate party standings, and egg ranks.
+
 ## 1.0.2
 
 Reorganized online menus, world chat, population counters, translucent selections, and improved input handling.

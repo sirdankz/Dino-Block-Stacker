@@ -1,10 +1,12 @@
 {
   "name": "Dino Block Stacker",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "xbox_title_id": "54413045",
   "xbox_save_id": "00000001",
   "android_application_id": "org.dinoblockstacker.app",
   "protocol": "TAP9/N11 unchanged",
   "server": "172.233.145.244",
-  "server_udp_port": 34987
+  "server_udp_port": 34987,
+  "party_protocol": "TAP4/1; R140 V4 verified party ranks, speed requests and rematch presence",
+  "party_server_udp_port": 34988
 }

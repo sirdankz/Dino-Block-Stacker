@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include "ta_vs_party_layout.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -54,7 +55,22 @@ DWORD XNetGetTitleXnAddr(XNADDR*);
 const char*ta_android_cache_dir(void);
 #define TA_N12_CACHE_DIR ta_android_cache_dir()
 void TA_Log(const char*,...);
+void TA_Input_RightStick(int*,int*);
+/* Display-only 512x224 canvas; only columns 224..511 are drawn. */
+bool TA_Video_SetPartyOverlay(const uint32_t*,unsigned);
+bool TA_Video_SetPartyVisual(const TaPartyVisual*);
+void TA_Video_PartyStats(unsigned long out[4]);
+void TA_Video_SetPartyBackdrop(const uint32_t*);
+void TA_Video_SetPopulation(unsigned accounts,unsigned ingame,unsigned online,unsigned known);
 void TA_Input_Poll(uint16_t[2]);
+void TA_Background_Set(void (*tick)(void));
+void TA_Controls_Init(const char*directory);
+unsigned TA_Controls_Get(unsigned player,unsigned action);
+void TA_Controls_Bind(unsigned player,unsigned action,unsigned bit);
+void TA_Controls_Reset(unsigned player);
+bool TA_Controls_Save(void);
+uint16_t TA_Input_GameButtons(uint16_t raw,unsigned player);
+
 struct Ppu;
 void TA_Video_BeginR126(struct Ppu*);
 bool TA_Video_EndR126(struct Ppu*);

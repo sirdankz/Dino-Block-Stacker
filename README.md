@@ -9,6 +9,9 @@ The application does **not** include the original game ROM, graphics, characters
 - Native Original Xbox executable (`.xbe`)
 - Android application (`.apk`) for compatible 64-bit ARM and x86 devices
 - Offline play and LAN multiplayer
+- Public 3-4 player AUTO/FOCUS parties with centered original-game boards
+- Same-room rematches, departure statuses, host speed changes and guest speed requests
+- Separate persistent 1v1/party leaderboards with six egg ranks and temporary emblems
 - Public online play using the project's hosted service
 - Online accounts, in-game and online population counters
 - Online world chat with account authentication and anti-abuse moderation
@@ -24,8 +27,8 @@ Prebuilt releases are available from the repository's **Releases** page:
 
 | Platform | Release file |
 | --- | --- |
-| Original Xbox ZIP | `DinoBlockStacker-v1.0.2-Xbox.zip` |
-| Android | `DinoBlockStacker-v1.0.2.apk` |
+| Original Xbox ZIP | `DinoBlockStacker-v1.0.3-Xbox.zip` |
+| Android | `DinoBlockStacker-v1.0.3.apk` |
 | Original Xbox executable | `default.xbe` |
 | Source archive | GitHub source archives |
 
@@ -65,7 +68,7 @@ DinoBlockStacker/
 3. Choose a compatible, unheadered 1 MiB SNES ROM using Android's system file picker.
 4. Select an available game mode. Touch controls and supported USB/Bluetooth gamepads can be used.
 
-The imported ROM is stored locally by the app. Public online features require network access and availability of the project's hosted service. The server implementation is not distributed in this repository.
+The imported ROM is stored locally by the app. Public online features require network access and availability of the project's hosted service. 
 
 ## Building from source
 
@@ -105,7 +108,7 @@ From the repository root:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\BUILD_DINO_ANDROID.ps1
 ```
 
-Output: `out\DinoBlockStackerAndroid\DinoBlockStacker-1.0.0.apk`
+Output: `out\DinoBlockStackerAndroid\DinoBlockStacker-<version>.apk` (from `release_identity.json`).
 
 The script accepts `-SdkRoot`, `-GradleRoot`, and `-JdkRoot` overrides. The default Python interpreter is `C:\Python314\python.exe`, with `python` on `PATH` used as a fallback.
 
@@ -125,7 +128,7 @@ Android release signing uses a local keystore at `%USERPROFILE%\.android\dinoblo
 | `BUILD_DINO_XBOX.ps1` | Original Xbox build entry point |
 | `BUILD_DINO_ANDROID.ps1` | Android build entry point |
 
-The repository contains **client software only**. Dedicated server source, service configuration, deployment scripts, private keys, proprietary game data, generated binaries, and development logs are not included. The online client contains the publicly reachable service endpoint and public verification key required for connectivity.
+Online play connects to a separately maintained hosted service. Public connection settings and verification keys are included in the client source.
 
 ## License and acknowledgments
 
@@ -138,3 +141,9 @@ The license applies only to material that its contributors are authorized to lic
 ## Release history
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
+
+## Client checks
+
+```powershell
+python netplay/tests/run_client_tests.py
+```

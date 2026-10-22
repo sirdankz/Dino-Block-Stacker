@@ -7,7 +7,19 @@ void ta_vs_local_init(TaVsLocalGame*g,Snes*s,TaVsSession*n,uint32_t seed){memset
 void ta_vs_local_bind(TaVsLocalGame*g){bound=g;}
 int ta_vs_local_receive(TaVsLocalGame*g){
  if(!g||!g->session)return TA_VS_BAD_ARGUMENT;
- const TaVsEvent*e;while((e=ta_vs_peek(g->session))&&e->tag==TA_VS_ATTACK){int r=ta_vs_attack_stage(g->session,&g->inbox);if(r)return r;}
+ const TaVsEvent*e;while((e=ta_vs_peek(g->session))&&e->tag==TA_VS_ATTACK){int r=ta_vs_attack_stage(g->session,&g->inbox);if(r==TA_VS_QUEUE_FULL)return 0;if(r)return r;}
+ return 0;
+}
+int ta_vs_local_flush(TaVsLocalGame*g){
+ if(!g)return TA_VS_BAD_ARGUMENT;
+ /* FIFO per destination. A slow target cannot block junk aimed at another
+    opponent; the chosen destination is frozen when the attack is captured. */
+ unsigned work=0;for(unsigned route=0;route<5&&g->outgoingCount&&work<32;route++)for(;work<32;){
+  unsigned slot=256;for(unsigned k=0;k<256;k++)if(g->outgoing[k].used&&g->outgoing[k].route==route&&(slot==256||g->outgoing[k].order<g->outgoing[slot].order))slot=k;
+  if(slot==256)break;
+  int r=g->sendAttack?g->sendAttack(g->sendContext,g->outgoing[slot].type,g->outgoing[slot].value,g->outgoing[slot].frame,route):ta_vs_attack_send(g->session,g->outgoing[slot].type,g->outgoing[slot].value,g->outgoing[slot].frame,NULL);
+  if(r==TA_VS_QUEUE_FULL)break;if(r){return r;}g->outgoing[slot].used=0;g->outgoingCount--;g->sent++;work++;
+ }
  return 0;
 }
 void ta_vs_game_trace(Cpu*c){
@@ -49,12 +61,23 @@ void ta_vs_game_trace(Cpu*c){
  static const unsigned pending[7]={0x42c,0,0x444,0x44c,0x454,0x45c,0x470};
  for(unsigned type=0;type<7;type++)if(type!=1){
   unsigned address=pending[type]+2,n=word(w,address);
-  while(n){unsigned value=type?1:n;r=ta_vs_attack_send(g->session,type,value,g->s->frames,NULL);if(r){g->error=r;return;}g->sent++;if(!type)n=0;else n--;put(w,address,n);}
+  while(n){
+   unsigned slot=0;while(slot<256&&g->outgoing[slot].used)slot++;
+   /* Bounded owned backlog: a pathological stall ends explicitly rather than
+      overwrite a chain or let an unbounded allocation exhaust console RAM. */
+   if(slot==256||g->outgoingOrder==UINT32_MAX){g->error=TA_VS_QUEUE_FULL;return;}
+   unsigned value=type?1:n;g->outgoing[slot].used=1;g->outgoingCount++;g->outgoing[slot].order=++g->outgoingOrder;
+   g->outgoing[slot].type=(uint16_t)type;g->outgoing[slot].value=(uint16_t)value;g->outgoing[slot].frame=g->s->frames;
+   g->outgoing[slot].route=(uint8_t)(g->selectTarget?g->selectTarget(g->sendContext):4);
+   if(!type)n=0;else n--;put(w,address,n);
+  }
  }
+ r=ta_vs_local_flush(g);if(r){g->error=r;return;}
+ if(g->receiveAttacks){r=g->receiveAttacks(g->sendContext,w,sizeof g->s->ram);if(r)g->error=r;return;}
  /* Received events are already ordered by the sender's delivery boundary.
     Only the owning endpoint can modify P0; display packets have no access. */
  for(;;){uint32_t next=0;for(unsigned k=0;k<TA_VS_WINDOW;k++)if(g->inbox.used[k]&&(!next||g->inbox.attack[k].sequence<next))next=g->inbox.attack[k].sequence;
-  if(!next)break;r=ta_vs_attack_deliver(&g->inbox,next,w,sizeof g->s->ram,0);if(r){g->error=r;return;}g->received++;
+  if(!next)break;r=ta_vs_attack_deliver(&g->inbox,next,w,sizeof g->s->ram,0);if(r==TA_VS_ATTACK_BUSY)break;if(r){g->error=r;return;}g->received++;
  }
 }
 uint16_t ta_vs_setup_buttons(unsigned f,unsigned p){

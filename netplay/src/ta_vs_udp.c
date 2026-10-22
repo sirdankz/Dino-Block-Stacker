@@ -10,12 +10,15 @@
 #include "ta_vs_xnet_config.h"
 #endif
 #include <string.h>
+#if !defined(TA_VS_HOST)
+static unsigned ta_xnet_users;
+#endif
 void ta_vs_udp_close(TaVsUdp*u){
  if(!u)return;
  if(u->opened)closesocket((SOCKET)u->socketHandle);
  if(u->winsockStarted)WSACleanup();
 #if !defined(TA_VS_HOST)
- if(u->xnetStarted)XNetCleanup();
+ if(u->xnetStarted&&ta_xnet_users&&!--ta_xnet_users)XNetCleanup();
 #endif
  memset(u,0,sizeof *u);
 }
@@ -28,7 +31,8 @@ static int ta_vs_udp_open_mode(TaVsUdp*u,uint16_t port,int automatic){
  #if defined(TA_VS_AUTO_NETWORK) && TA_VS_AUTO_NETWORK
  if(automatic)xp.cfgFlags|=0x80u; /* XNET_STARTUP_MANUAL_CONFIG */
 #endif
- error=XNetStartup(&xp);if(error)return -error;u->xnetStarted=1;
+ if(!ta_xnet_users){error=XNetStartup(&xp);if(error)return -error;}
+ ta_xnet_users++;u->xnetStarted=1;
 #if defined(TA_VS_AUTO_NETWORK) && TA_VS_AUTO_NETWORK
  if(automatic){TaVsXnetConfig config;memset(&config,0,sizeof config);config.signature=0x58424350u; /* XBCP */
   error=XNetConfig(&config,0);if(error){ta_vs_udp_close(u);return -error;}}

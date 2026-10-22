@@ -30,6 +30,7 @@ int ta_vs_attack_apply(uint8_t*w,size_t n,unsigned player,const TaVsAttack*a){
  if(!w||n!=131072||player>1||!a||!valid(a->type,a->value))return TA_VS_BAD_ARGUMENT;
  static const unsigned pending[7]={0x42c,0,0x444,0x44c,0x454,0x45c,0x470};
  unsigned address=pending[a->type]+player*2,value=a->value;
+ if(a->type==TA_VS_CHAIN && (w[address]||w[address+1]))return TA_VS_ATTACK_BUSY;
  if(a->type!=TA_VS_CHAIN){
   value=w[address]|((unsigned)w[address+1]<<8);
   /* Retain a network event when no counter capacity remains. This guarded

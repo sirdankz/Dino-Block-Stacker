@@ -12,6 +12,7 @@ int ta_vs_picture_prepare(TaVsPictureTx*t,const uint32_t*rgb,unsigned stride,uin
  if(t->preparedRevision==revision)return 0;
  for(unsigned tile=0;tile<TA_VS_PIC_TILES;tile++){
   unsigned o=offset(tile),sx=(tile%14)*16,sy=(tile/14)*8,changed=!t->valid[tile];
+  if(t->fieldOnly&&(sx<16||sx>=208||sy<24||sy>=216))continue;
   for(unsigned y=0;y<8;y++)for(unsigned x=0;x<16;x++){
    unsigned at=o+y*224+x;uint32_t v=rgb[(sy+y)*stride+sx+x]&0xffffffu;
    changed|=v!=t->sent[at];t->sent[at]=v;

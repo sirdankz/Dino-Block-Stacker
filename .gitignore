@@ -50,6 +50,14 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Local private service baseline and signing files
+/R132_Private_Live_Fix/
+*.exp
+*.lib
+*.pyo
+*.zip
+
+
 # Hosted infrastructure and local deployment material
 /R*_Private_*/
 /server/

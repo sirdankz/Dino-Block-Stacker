@@ -1,9 +1,11 @@
 /* OG Xbox gamepads -> SNES joypad bits; retain existing button mapping. */
 #include "ta_platform.h"
+#include "ta_controls_impl.h"
 static HANDLE pads[4];
 static DWORD lastError[4];
 static bool sawState[4],sawButtons[4];
-static unsigned retryFrames;
+static unsigned retryFrames;static int rightX,rightY;
+extern "C" void TA_Input_RightStick(int*x,int*y){*x=rightX;*y=rightY;}
 #define THRESH 40
 #define RETRY_FRAMES 60
 static void close_pad(DWORD port){
@@ -34,8 +36,11 @@ extern "C" void TA_Input_Init(void){
   TA_Log("[TA R45 INPUT] fix=1 connected_mask=%lX retry_interval_frames=60\n",(unsigned long)connected);
   for(DWORD i=0;i<4;i++)if(connected&(1u<<i))open_pad(i);
 }
+static void (*backgroundTick)(void);
+extern "C" void TA_Background_Set(void (*tick)(void)){backgroundTick=tick;}
 extern "C" void TA_Input_Poll(uint16_t out[2]){
-  out[0]=out[1]=0;
+  if(backgroundTick)backgroundTick();
+  out[0]=out[1]=0;rightX=rightY=0;
   DWORD inserted=0,removed=0;
   if(XGetDeviceChanges(XDEVICE_TYPE_GAMEPAD,&inserted,&removed))for(DWORD i=0;i<4;i++){
     if(removed&(1u<<i))close_pad(i);
@@ -73,10 +78,12 @@ extern "C" void TA_Input_Poll(uint16_t out[2]){
     if(a[XINPUT_GAMEPAD_X]>THRESH)j|=1u<<1;
     if(a[XINPUT_GAMEPAD_B]>THRESH)j|=1u<<8;
     if(a[XINPUT_GAMEPAD_Y]>THRESH)j|=1u<<9;
+    if(a[XINPUT_GAMEPAD_WHITE]>THRESH)j|=0x1000u;
+    if(a[XINPUT_GAMEPAD_BLACK]>THRESH)j|=0x2000u;
     if(a[XINPUT_GAMEPAD_LEFT_TRIGGER]>THRESH)j|=1u<<10;
     if(a[XINPUT_GAMEPAD_RIGHT_TRIGGER]>THRESH)j|=1u<<11;
     if(j&&!sawButtons[i]){sawButtons[i]=true;TA_Log("[TA R45 INPUT] port=%u player=%u buttons_seen=1 snes=%04X digital=%04X\n",(unsigned)i,(unsigned)(pl+1),(unsigned)j,(unsigned)b);}
-    out[pl++]=j;
+    if(pl==0){rightX=s.Gamepad.sThumbRX;rightY=s.Gamepad.sThumbRY;}out[pl++]=j;
   }
 }
 extern "C" void TA_Input_Shutdown(void){for(DWORD i=0;i<4;i++)close_pad(i);}

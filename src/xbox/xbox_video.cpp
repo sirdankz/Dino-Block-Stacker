@@ -159,6 +159,7 @@ static void lanOverlay(float x0,float x1){
 }
 #endif
 #endif
+#include "xbox_party_overlay.h"
 static void draw(LPDIRECT3DTEXTURE8 target, bool isLinear, bool active, int textureW=512,bool customShader=false){
   if(!customShader)dev->SetPixelShader(0);
   float dh=(float)height,dw=dh*(4.0f/3.0f);if(dw>(float)width)dw=(float)width;
@@ -169,20 +170,27 @@ static void draw(LPDIRECT3DTEXTURE8 target, bool isLinear, bool active, int text
                   (isLinear?464.0f:464.0f/512.0f);
   float y0=0,y1=(float)height;
 #if defined(TA_VS_NATIVE_VIEW) && TA_VS_NATIVE_VIEW
-  if(lanImage){TaVsView v=ta_vs_view((unsigned)width,(unsigned)height,displayWidescreen);x0=v.left;x1=v.right;y0=v.top;y1=v.bottom;}
+  if(lanImage||partyVisual){TaVsView v=ta_vs_view((unsigned)width,(unsigned)height,displayWidescreen);x0=v.left;x1=v.right;y0=v.top;y1=v.bottom;}
 #endif
   V q[4]={{x0,y0,0,1,u0,v0},{x1,y0,0,1,u1,v0},
     {x0,y1,0,1,u0,v1},{x1,y1,0,1,u1,v1}};
 #if defined(TA_VS_NATIVE_VIEW) && TA_VS_NATIVE_VIEW
-  if(lanImage)for(unsigned k=0;k<4;k++){q[k].x-=0.5f;q[k].y-=0.5f;}
+  if(lanImage||partyVisual)for(unsigned k=0;k<4;k++){q[k].x-=0.5f;q[k].y-=0.5f;}
 #elif defined(TA_VS_LEAN_VIEW) && TA_VS_LEAN_VIEW
-  if(lanImage){q[1].x=q[3].x=x0+dw*(224.0f/512.0f);q[1].u=q[3].u=u1*(224.0f/512.0f);}
+  if(lanImage||partyVisual){q[1].x=q[3].x=x0+dw*(224.0f/512.0f);q[1].u=q[3].u=u1*(224.0f/512.0f);}
 #endif
+  if(partyVisual){
+    TaPartyLayout layout=ta_party_layout(width,height,displayWidescreen,partyPeers());
+    q[0].x=q[2].x=layout.local.left-0.5f;q[1].x=q[3].x=layout.local.right-0.5f;
+    q[0].y=q[1].y=layout.local.top-0.5f;q[2].y=q[3].y=layout.local.bottom-0.5f;
+    q[1].u=q[3].u=u0+(u1-u0)*(224.0f/512.0f);
+    q[0].v=q[1].v=v0+(v1-v0)*(layout.localSourceY/224.0f);
+  }
   dev->Clear(0,NULL,D3DCLEAR_TARGET,D3DCOLOR_XRGB(0,0,0),1.0f,0);
   if(SUCCEEDED(dev->BeginScene())){dev->SetTexture(0,target);dev->SetVertexShader(FVF);
     dev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP,2,q,sizeof(V));
 #if defined(TA_VS_NATIVE_GAME) && TA_VS_NATIVE_GAME
-    lanOverlay(x0,x1);
+    lanOverlay(x0,x1);partyOverlay();populationOverlay(!active);
 #endif
     dev->EndScene();}
   unsigned long beforePresent=GetTickCount();
@@ -282,7 +290,7 @@ extern "C" void TA_Video_ReadResetUploadTicks(uint64_t ticks[3]){
   ticks[0]=ticks[1]=ticks[2]=0;
 #endif
 }
-extern "C" void TA_Video_Shutdown(void){
+extern "C" void TA_Video_Shutdown(void){partyShutdown();
 #if defined(TA_VS_NATIVE_GAME) && TA_VS_NATIVE_GAME
 #if defined(TA_VS_LEAN_VIEW) && TA_VS_LEAN_VIEW
   for(unsigned k=0;k<3;k++)if(lanTex[k]){lanTex[k]->Release();lanTex[k]=NULL;}lanImage=NULL;

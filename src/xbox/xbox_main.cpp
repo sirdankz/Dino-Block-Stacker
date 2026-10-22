@@ -505,6 +505,7 @@ int main(){
     j[0]=j[1]=0;
 #else
     TA_Input_Poll(j);
+    for(unsigned p=0;p<2;p++)j[p]=TA_Input_GameButtons(j[p],p);
 #endif
     for(int p=0;p<2;p++)for(int b=0;b<12;b++)snes_setButtonState(s,p+1,b,(j[p]&(1u<<b))!=0);
 #if !defined(TA_NO_LOG) || !TA_NO_LOG

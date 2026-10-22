@@ -102,10 +102,8 @@ public final class TouchPad extends View {
         add("right", "RIGHT", 0x80, cx + unit, cy, unit, unit, w, h);
         add("a", "A", 1, right, cy + unit, unit, unit, w, h);
         add("b", "B", 0x100, right + unit, cy, unit, unit, w, h);
-        add("x", "X", 2, right - unit, cy, unit, unit, w, h);
-        add("y", "Y", 0x200, right, cy - unit, unit, unit, w, h);
-        add("l", "L", 0x400, cx, cy - unit * 2.4f, unit * 1.8f, unit * .7f, w, h);
-        add("r", "R", 0x800, right, cy - unit * 2.4f, unit * 1.8f, unit * .7f, w, h);
+        add("r", "RAISE", 0x800, right, cy - unit * 2.4f, unit * 1.8f, unit * .7f, w, h);
+        add("target", "TARGET", 0x4000, right, cy - unit, unit * 1.8f, unit * .8f, w, h);
         add("back", "BACK", 4, w * .44f, h - unit * .6f, unit * 1.8f, unit * .7f, w, h);
         add("start", "START", 8, w * .56f, h - unit * .6f, unit * 1.8f, unit * .7f, w, h);
         if (!loadSaved) for (Control c : controls) { c.nx = c.defaultX; c.ny = c.defaultY; c.scale = 1f; updateRect(c); }
@@ -181,7 +179,7 @@ public final class TouchPad extends View {
                 canvas.drawRoundRect(c.rect, unit * .18f, unit * .18f, paint);
                 paint.setStyle(Paint.Style.FILL);
             }
-            paint.setColor(c.bit == 1 ? 0xff96e3b2 : c.bit == 0x100 ? 0xfff1a0aa : c.bit == 0x200 ? 0xfff1cb72 : 0xffdbe3ef);
+            paint.setColor(c.bit == 1 ? 0xff96e3b2 : c.bit == 0x100 ? 0xfff1a0aa : c.bit == 0x4000 ? 0xfff1cb72 : 0xffdbe3ef);
             float font = Math.min(c.rect.height() * .38f, c.rect.width() / Math.max(2.1f, c.label.length() * .65f));
             paint.setTextSize(Math.max(9f, font));
             canvas.drawText(c.label, c.rect.centerX(), c.rect.centerY() - (paint.ascent() + paint.descent()) * .5f, paint);

@@ -7,7 +7,7 @@ get_filename_component(TA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../../.." ABSO
 include("${TA_ROOT}/android_port/generated/android_defines.cmake")
 file(GLOB CORE "${TA_ROOT}/third_party/lakesnes/snes/*.c")
 set(SRC ${CORE} "${TA_ROOT}/src/native/ta_rom_sha256.c" "${TA_ROOT}/src/native/ta_profile.c" "${TA_ROOT}/src/native/ta_r82_cost.c" "${TA_ROOT}/src/native/ta_native.c" "${TA_ROOT}/third_party/monocypher/monocypher.c")
-foreach(n ta_vs_local_game ta_vs_session ta_vs_attack ta_vs_board_rng ta_vs_board_rows ta_vs_picture ta_vs_lan ta_vs_lan_screen ta_vs_public ta_vs_match ta_vs_round ta_vs_preview ta_vs_start ta_vs_account)
+foreach(n ta_vs_party ta_vs_local_game ta_vs_session ta_vs_attack ta_vs_board_rng ta_vs_board_rows ta_vs_picture ta_vs_lan ta_vs_lan_screen ta_vs_public ta_vs_match ta_vs_round ta_vs_preview ta_vs_start ta_vs_account)
  list(APPEND SRC "${TA_ROOT}/netplay/src/${n}.c")
 endforeach()
 add_library(dinoblockstacker SHARED ${SRC} ta_android_udp.c ta_android_os.cpp ta_android_platform.cpp "${TA_ROOT}/android_port/generated/ta_android_frontend.cpp")

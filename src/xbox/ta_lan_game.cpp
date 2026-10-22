@@ -12,6 +12,7 @@ extern "C" {
 #include "ta_vs_local_game.h"
 #include "ta_vs_picture.h"
 #include "ta_vs_public.h"
+#include "ta_vs_party.h"
 #if defined(TA_VS_ACCOUNTS) && TA_VS_ACCOUNTS
 #include "ta_vs_account.h"
 #endif
@@ -82,6 +83,14 @@ static bool sourceReady;
 static uint32_t captureRevision;
 #if defined(TA_VS_PUBLIC_ROOMS) && TA_VS_PUBLIC_ROOMS
 static TaVsPublic publicRoom;
+/* Both room directories share one socket; opening a second XNet stack while
+   the original is active can reset Xbox network configuration. */
+static TaVsParty publicPartyDirectory;
+static uint32_t publicPartyAddress;
+static uint16_t publicPartyPort;
+static bool publicPartyBrowsing;
+static uint32_t publicPartyJoinRoom;
+static int publicPartyHostMode=-1;
 #if defined(TA_VS_NETWORK_READY) && TA_VS_NETWORK_READY
 static TaVsConnectClock publicClock;
 static uint32_t publicNetStatus,publicWaitLogAt;
@@ -130,10 +139,10 @@ static int consumeEvents(void){
    TaVsAttack a;int r=ta_vs_attack_decode(e,&a);if(r||!a.round)return TA_VS_BAD_PACKET;
    if(a.round>roundState.epoch)return 0;
    if(a.round<roundState.epoch||roundState.phase==TA_ROUND_RESULT){r=ta_vs_commit(&lobby.session,e->sequence);if(r)return r;continue;}
-   if(!game.s)return TA_VS_CONFLICT;r=ta_vs_attack_stage(&lobby.session,&game.inbox);if(r)return r;continue;
+   if(!game.s)return TA_VS_CONFLICT;r=ta_vs_attack_stage(&lobby.session,&game.inbox);if(r==TA_VS_QUEUE_FULL)return 0;if(r)return r;continue;
   }
 #else
-  if(e->tag==TA_VS_ATTACK){if(!game.s)return TA_VS_CONFLICT;int r=ta_vs_attack_stage(&lobby.session,&game.inbox);if(r)return r;continue;}
+  if(e->tag==TA_VS_ATTACK){if(!game.s)return TA_VS_CONFLICT;int r=ta_vs_attack_stage(&lobby.session,&game.inbox);if(r==TA_VS_QUEUE_FULL)return 0;if(r)return r;continue;}
 #endif
 #if defined(TA_VS_REMATCH) && TA_VS_REMATCH
   if(e->tag!=TA_VS_RESULT||e->size!=8||e->data[0]!=10||e->data[1]>9||e->data[2]<1||e->data[2]>10||e->data[3]>=TA_VS_CHARACTERS)return TA_VS_BAD_PACKET;
@@ -192,6 +201,9 @@ static int pumpWork(bool display){
   int n=ta_vs_udp_receive_any(&transport,packet,sizeof packet,&from,&port);if(!n)break;
   if(n<0){if(n==-WSAEMSGSIZE){lobby.rejected++;continue;}return n;}
 #if defined(TA_VS_PUBLIC_ROOMS) && TA_VS_PUBLIC_ROOMS
+  if(publicMode&&publicPartyBrowsing&&from==publicPartyAddress&&port==publicPartyPort&&n>=4&&!memcmp(packet,"TAP4",4)){
+   ta_vs_party_receive(&publicPartyDirectory,now,packet,(size_t)n);continue;
+  }
   if(publicMode){
 #if defined(TA_VS_NETWORK_READY) && TA_VS_NETWORK_READY
    if(!publicRoom.havePeer&&publicRxLogs<4){publicRxLogs++;TA_Log("[TA " TA_LAN_BUILD " NET] stage=datagram_received bytes=%d op=%u from_server=%u rx=%lu\n",n,n>=6?(unsigned)packet[5]:0u,(unsigned)(from==publicRoom.serverAddress&&port==publicRoom.serverPort),(unsigned long)transport.received);}
@@ -222,6 +234,11 @@ static int pumpWork(bool display){
   publicRoom.phase=roundState.phase;publicRoom.roundEpoch=roundState.epoch;
 #endif
   if(publicRoom.error)return publicRoom.error;
+  if(publicPartyBrowsing&&!publicRoom.haveRoom&&!publicPartyDirectory.error&&
+     (!publicPartyDirectory.requestSent||(uint32_t)(now-publicPartyDirectory.lastSend)>=(publicPartyDirectory.haveCookie?1000u:250u))){
+   uint8_t packet[TA_PARTY_BYTES];size_t n=ta_vs_party_packet(&publicPartyDirectory,now,packet,sizeof packet);
+   if(n)ta_vs_udp_send_to(&transport,publicPartyAddress,publicPartyPort,packet,n);
+  }
 #if defined(TA_VS_ACCOUNTS) && TA_VS_ACCOUNTS
   const uint8_t*accountPacket;size_t accountBytes=ta_account_packet(&accountLink,now,&accountPacket);
   if(accountBytes){int sent=ta_vs_udp_send_to(&transport,publicRoom.serverAddress,publicRoom.serverPort,accountPacket,accountBytes);if(sent<0)return sent;}
@@ -237,7 +254,7 @@ static int pumpWork(bool display){
 #if defined(TA_VS_AUTO_NETWORK) && TA_VS_AUTO_NETWORK
    if(ta_vs_network_recover(publicMode,publicRoom.haveCookie,publicRoom.havePeer,publicAutoAttempted,publicNetStatus&XNET_GET_XNADDR_STATIC)){
     publicAutoAttempted=1;ta_vs_udp_close(&transport);int opened=ta_vs_udp_open_dhcp(&transport,0);
-    TA_Log("[TA " TA_LAN_BUILD " NET] stage=automatic_retry result=%d fresh_stack=1 saved_settings_unchanged=1\n",opened);if(opened)return opened;
+    TA_Log("[TA " TA_LAN_BUILD " NET] stage=automatic_retry result=%d shared_stack=1 saved_settings_unchanged=1\n",opened);if(opened)return opened;
     publicRoom.localAddress=0;publicRoom.localPort=transport.localPort;publicRoom.requested=0;publicRoom.lastRequest=0;publicRoom.started=publicRoom.lastServer=now;
     ta_vs_connect_reset(&publicClock,now);publicNetStatus=publicWaitLogAt=publicRxLogs=publicTxLogs=0;return 0;
    }
@@ -395,7 +412,7 @@ static int beginLobby(const uint8_t*rom,unsigned bytes,unsigned role,bool online
 #else
  char ip[64]="172.233.145.244";unsigned port=TA_PUB_PORT;
 #endif
-FILE*f=fopen("D:\ta-server.txt","rb");if(f){char line[96];if(fgets(line,sizeof line,f)){char value[64];unsigned p=TA_PUB_PORT;if(sscanf(line,"%63s %u",value,&p)>=1&&ta_vs_public_ipv4(value)&&p&&p<65536){strcpy(ip,value);port=p;}}fclose(f);}
+FILE*f=fopen("D:\\ta-server.txt","rb");if(f){char line[96];if(fgets(line,sizeof line,f)){char value[64];unsigned p=TA_PUB_PORT;if(sscanf(line,"%63s %u",value,&p)>=1&&ta_vs_public_ipv4(value)&&p&&p<65536){strcpy(ip,value);port=p;}}fclose(f);}
   ta_vs_public_init(&publicRoom,&id,nonce,ta_vs_public_ipv4(ip),(uint16_t)port,transport.localPort,now);publicRoom.speed=(uint8_t)sharedSpeed;lastRoute=~0u;
 #if defined(TA_VS_NETWORK_READY) && TA_VS_NETWORK_READY
   
@@ -517,7 +534,7 @@ extern "C" void TA_LanGame_Run(const uint8_t*rom,unsigned bytes){
   leavePublic();peerSettings=0;
 #endif
   ta_vs_udp_close(&transport);memset(&lobby,0,sizeof lobby);
-  memset(&pictureTx,0,sizeof pictureTx);memset(&pictureRx,0,sizeof pictureRx);
+  memset(&pictureTx,0,sizeof pictureTx);pictureTx.fieldOnly=1;memset(&pictureRx,0,sizeof pictureRx);
   peerReady=peerLoaded=peerLost=peerQuit=remoteRevision=streamTick=captureRevision=0;overlayRevision=0;
   unsigned state=TA_LAN_SELECT,previousState=~0u;uint16_t previous=0;uint32_t localIp=0;int error=0;bool localReady=false;
 #if defined(TA_VS_PUBLIC_ROOMS) && TA_VS_PUBLIC_ROOMS

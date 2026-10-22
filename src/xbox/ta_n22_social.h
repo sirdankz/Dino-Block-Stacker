@@ -33,7 +33,7 @@ static void taSocialTick(uint32_t now,bool counts){
    const uint8_t*b=accountLink.reply;unsigned n=accountLink.replyBytes;
    if(taSocialCommand==TA_ACCOUNT_COUNTS && n==14){
     taSocialAccounts=taSocialU32(b+2);taSocialInGame=taSocialU32(b+6);
-    taSocialOnline=taSocialU32(b+10);taSocialCountKnown=1;
+    taSocialOnline=taSocialU32(b+10);taSocialCountKnown=1;TA_Video_SetPopulation(taSocialAccounts,taSocialInGame,taSocialOnline,1);
    }else if(taSocialCommand==TA_ACCOUNT_CHAT_POLL && n>=3){
     unsigned count=b[2];if(count<=4&&n==3+count*52){
      for(unsigned i=0;i<count;i++){

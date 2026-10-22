@@ -7,7 +7,7 @@
 #define TA_VS_PIC_TILES 392u
 /* Display-only RGB tiles. No guest RAM pointer or CPU state in this API.
    Refresh corrects dropped tiles without ever delaying local gameplay. */
-typedef struct {uint32_t sent[TA_VS_PIC_W*TA_VS_PIC_H],stamp[TA_VS_PIC_TILES];uint8_t valid[TA_VS_PIC_TILES];unsigned cursor;
+typedef struct {uint32_t sent[TA_VS_PIC_W*TA_VS_PIC_H],stamp[TA_VS_PIC_TILES];uint8_t valid[TA_VS_PIC_TILES];unsigned cursor;uint8_t fieldOnly;
  uint8_t dirty[TA_VS_PIC_TILES];unsigned pendingCount;uint32_t preparedRevision,refreshTick;
 } TaVsPictureTx;
 typedef struct {uint32_t pixels[TA_VS_PIC_W*TA_VS_PIC_H],stamp[TA_VS_PIC_TILES];uint8_t valid[TA_VS_PIC_TILES];unsigned updates;} TaVsPictureRx;

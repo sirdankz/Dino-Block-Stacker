@@ -16,8 +16,8 @@ replace('#include <winsockx.h>','')
 assert s.count('#include "../../out/N17Assets/ta_n17_assets.h"') in (1,2)
 s=s.replace('#include "../../out/N17Assets/ta_n17_assets.h"','#include "ta_android_assets.h"')
 # No D: files on Android; retain embedded endpoint/pin. Save files use app-private storage.
-replace('FILE*f=fopen("D:\\ta-server.txt","rb");','FILE*f=NULL;')
-s+='\nextern "C" void ta_android_frontend_close(void){releaseGame();freeMenuCache();ta_vs_local_bind(NULL);if(publicMode&&transport.opened&&publicRoom.haveCookie){ta_vs_public_begin_leave(&publicRoom);uint8_t packet[TA_PUB_BYTES];uint32_t to;uint16_t port;size_t n=ta_vs_public_packet(&publicRoom,GetTickCount(),packet,sizeof packet,&to,&port);if(n)ta_vs_udp_send_to(&transport,to,port,packet,n);}ta_vs_udp_close(&transport);publicMode=false;}\n'
+replace('FILE*f=fopen("D:\\\\ta-server.txt","rb");','FILE*f=NULL;')
+s+='\nextern "C" void ta_android_frontend_close(void){TA_Background_Set(NULL);taPresenceEnabled=false;taPresenceDrop(GetTickCount(),0);partyClose();releaseGame();freeMenuCache();ta_vs_local_bind(NULL);if(publicMode&&transport.opened&&publicRoom.haveCookie){ta_vs_public_begin_leave(&publicRoom);uint8_t packet[TA_PUB_BYTES];uint32_t to;uint16_t port;size_t n=ta_vs_public_packet(&publicRoom,GetTickCount(),packet,sizeof packet,&to,&port);if(n)ta_vs_udp_send_to(&transport,to,port,packet,n);}ta_vs_udp_close(&transport);publicMode=false;}\n'
 (out/'ta_android_frontend.cpp').write_text(s,encoding='utf8',newline='\n')
 # Keep native CPU, APU rational timing, guest guards and network definitions.
 # Select existing portable CPU-renderer fallbacks for x86-only MMX/NV2A output.
