@@ -6,21 +6,13 @@ The application does **not** include the original game ROM, graphics, characters
 
 ## Features
 
-- Native Original Xbox executable (`.xbe`)
-- Android application (`.apk`) for compatible 64-bit ARM and x86 devices
 - Offline play and LAN multiplayer
-- Public 3-4 player AUTO/FOCUS parties with centered original-game boards and next-round waiting slots
 - Same-room rematches, departure statuses, host speed changes and guest speed requests
 - Visible active/full rooms and recovery after an opponent leaves
-- Scrollable 1v1 and party leaderboards with 34px egg emblems and Android swipe controls
-- Public online play using the project's hosted service
 - Online accounts, in-game and online population counters
-- Online world chat with account authentication and anti-abuse moderation
-- Translucent selected-menu highlights and improved results-menu input protection
 - Xbox world-chat shortcuts: START send, X delete, Y space, L/R jump to SPACE/SEND
 - Gamepad support on both platforms and on-screen controls on Android
 - Customizable Android touchscreen buttons with per-button position and size; Always Show, Auto-hide, and Off modes
-- ROM import and compatibility verification before gameplay
 
 ## Downloads
 
@@ -44,9 +36,8 @@ The 1v1 and party leaderboards use independent ratings and six egg ranks: Rotten
 
 Counts refer to registered accounts, authenticated players in an active online round, and unique authenticated accounts currently connected to the online service.
 World chat accepts up to 32 ASCII characters per message; profanity is allowed, but racist slurs (including common obfuscations and compounds) are rejected by the server.
-Chat messages and moderation decisions are handled by the private hosted service, not by other game clients.
 
-On Xbox, START sends a world-chat message directly; X deletes, Y inserts a space, and L/R focus the SPACE/SEND actions. Results menu choices are blocked for approximately one second and until A/B buttons have been released.
+On Xbox, START sends a world-chat message directly; X deletes, Y inserts a space, and L/R focus the SPACE/SEND actions.
 
 ## Installation
 
