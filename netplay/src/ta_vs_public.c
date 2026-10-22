@@ -60,9 +60,9 @@ int ta_vs_public_receive(TaVsPublic*p,uint32_t now,uint32_t from,uint16_t port,u
   if(!p->haveCookie||memcmp(p->cookie,b+16,16))return -1;
   if(op==TA_PUB_LEAVE_ACK){if(bytes||!p->leaving)return -1;p->leaveAck=1;p->haveRoom=p->havePeer=p->direct=0;p->error=0;return 0;}
   if(p->leaving)return 0;
-  if(op==TA_PUB_ROOMS){if(p->haveRoom||bytes<1||b[32]>8||bytes!=1+b[32]*8)return -1;
-   for(unsigned k=0;k<b[32];k++){const uint8_t*q=b+33+k*8;if(!r32(q)||q[4]<1||q[4]>10||q[5]!=1||q[6]||q[7])return -1;}
-   p->roomCount=b[32];for(unsigned k=0;k<p->roomCount;k++){p->rooms[k].id=r32(b+33+k*8);p->rooms[k].speed=b[37+k*8];p->rooms[k].players=b[38+k*8];}p->lastServer=now;return 0;
+  if(op==TA_PUB_ROOMS){if(p->haveRoom||bytes<1||b[32]>64||bytes!=1+b[32]*8)return -1;
+   for(unsigned k=0;k<b[32];k++){const uint8_t*q=b+33+k*8;if(!r32(q)||q[4]<1||q[4]>10||q[5]<1||q[5]>2||q[6]>4||q[7])return -1;}
+   p->roomCount=b[32];for(unsigned k=0;k<p->roomCount;k++){p->rooms[k].id=r32(b+33+k*8);p->rooms[k].speed=b[37+k*8];p->rooms[k].players=b[38+k*8];p->rooms[k].phase=b[39+k*8];}p->lastServer=now;return 0;
   }
   if(op==TA_PUB_STATE){if(bytes!=44||!r32(b+32)||b[36]!=p->role||b[37]<1||b[37]>10||b[38]>1||b[39]||!r64(b+40))return -1;
    if(p->haveRoom&&(p->room!=r32(b+32)||p->roomNonce!=r64(b+40)))return -1;

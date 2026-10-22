@@ -9,9 +9,10 @@ The application does **not** include the original game ROM, graphics, characters
 - Native Original Xbox executable (`.xbe`)
 - Android application (`.apk`) for compatible 64-bit ARM and x86 devices
 - Offline play and LAN multiplayer
-- Public 3-4 player AUTO/FOCUS parties with centered original-game boards
+- Public 3-4 player AUTO/FOCUS parties with centered original-game boards and next-round waiting slots
 - Same-room rematches, departure statuses, host speed changes and guest speed requests
-- Separate persistent 1v1/party leaderboards with six egg ranks and temporary emblems
+- Visible active/full rooms and recovery after an opponent leaves
+- Scrollable 1v1 and party leaderboards with 34px egg emblems and Android swipe controls
 - Public online play using the project's hosted service
 - Online accounts, in-game and online population counters
 - Online world chat with account authentication and anti-abuse moderation
@@ -27,8 +28,8 @@ Prebuilt releases are available from the repository's **Releases** page:
 
 | Platform | Release file |
 | --- | --- |
-| Original Xbox ZIP | `DinoBlockStacker-v1.0.5-Xbox.zip` |
-| Android | `DinoBlockStacker-v1.0.5.apk` |
+| Original Xbox ZIP | `DinoBlockStacker-v1.0.8-Xbox-NoLog.zip` |
+| Android | `DinoBlockStacker-v1.0.8.apk` |
 | Original Xbox executable | `default.xbe` |
 | Source archive | GitHub source archives |
 
@@ -36,9 +37,11 @@ Prebuilt releases are available from the repository's **Releases** page:
 
 ## Online menu
 
-The VERSUS menu contains **LAN JOIN**, **LAN HOST**, **ONLINE**, and **OFFLINE PLAY**.
+The VERSUS menu contains **LAN JOIN**, **LAN HOST**, **ONLINE**, **CONTROLS**, and **OFFLINE PLAY**.
 The ONLINE menu contains **PUBLIC ROOMS**, **PROFILE**, **WORLD CHAT**, and **LEADERBOARDS**.
-PUBLIC ROOMS provides browse and host actions. Press B to return through each menu.
+PUBLIC ROOMS provides browse and host actions. Hosting and joining require sign-in. Active and full rooms remain listed; an in-game party with an open slot accepts a waiting player for the next round. Waiting players enter the lobby after the current players request a rematch. Press B to return through each menu.
+The 1v1 and party leaderboards use independent ratings and six egg ranks: Rotten, Bronze, Silver, Gold, Platinum, and Master. Leaderboards scroll with the D-pad or left stick on Xbox and vertical swipes on Android. Rank emblems render at 34x34 pixels.
+
 Counts refer to registered accounts, authenticated players in an active online round, and unique authenticated accounts currently connected to the online service.
 World chat accepts up to 32 ASCII characters per message; profanity is allowed, but racist slurs (including common obfuscations and compounds) are rejected by the server.
 Chat messages and moderation decisions are handled by the private hosted service, not by other game clients.
@@ -118,6 +121,7 @@ Android release signing uses a local keystore at `%USERPROFILE%\.android\dinoblo
 
 | Path | Contents |
 | --- | --- |
+| `assets/ranks/` | Rank emblem artwork |
 | `src/` | Shared native game runtime and Original Xbox frontend |
 | `android_port/` | Android application, native platform code, and build configuration |
 | `netplay/` | LAN and hosted-online **client** functionality |

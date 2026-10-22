@@ -3,6 +3,9 @@
 #include "ta_controls_impl.h"
 static HANDLE pads[4];
 static DWORD lastError[4];
+extern "C" void TA_Input_SetLeaderboard(unsigned){}
+extern "C" int TA_Input_LeaderboardScroll(void){return 0;}
+extern "C" unsigned TA_Input_LeaderboardActions(void){return 0;}
 static bool sawState[4],sawButtons[4];
 static unsigned retryFrames;static int rightX,rightY;
 extern "C" void TA_Input_RightStick(int*x,int*y){*x=rightX;*y=rightY;}

@@ -31,7 +31,7 @@ static void partyClose(void){
  if(partyTransport.opened&&party.haveCookie){party.leaving=1;party.error=0;for(unsigned k=0;k<3;k++){uint8_t b[TA_PARTY_BYTES];size_t n=ta_vs_party_packet(&party,GetTickCount(),b,sizeof b);if(n)ta_vs_udp_send_to(&partyTransport,partyAddress,partyPort,b,n);}}
  ta_vs_udp_close(&partyTransport);releaseGame();
 }
-static bool partyLinksReady(void){for(unsigned s=0;s<4;s++)if(s!=party.self&&(party.members&(1u<<s))&&!ta_vs_ready(party.peer+s))return false;return true;}
+static bool partyLinksReady(void){for(unsigned s=0;s<4;s++)if(s!=party.self&&(party.members&party.present&(1u<<s))&&!ta_vs_ready(party.peer+s))return false;return true;}
 static int partyReceiveAttacks(void*context,uint8_t*w,size_t n){return ta_vs_party_deliver((TaVsParty*)context,w,n);}
 static int partyLoad(const uint8_t*rom,unsigned bytes){
  Snes*s=snes_init();if(!s)return TA_VS_BAD_ARGUMENT;game.s=s;
@@ -40,7 +40,7 @@ static int partyLoad(const uint8_t*rom,unsigned bytes){
  uint32_t drawn=0;
  for(unsigned frame=hit?2425:1840;frame<TA_VS_OPTIONS_SETUP_FRAMES;frame++){
   uint16_t pads[2];TA_Input_Poll(pads);if((pads[0]&12)==12)return TA_VS_CONFLICT;
-  int r=partyPump();if(r)return r;if(party.phase==3)return TA_VS_CONFLICT;
+  int r=partyPump();if(r)return r;if(party.phase==3||party.phase==0)return TA_VS_CONFLICT;
   if(frame==2425&&ta_vs_start_seed(s,party.seed))return TA_VS_CONFLICT;
   for(unsigned p=0;p<2;p++){unsigned buttons=frame<2425?ta_vs_setup_options(frame,p,party.speed,ownCharacter):0;for(unsigned b=0;b<12;b++)snes_setButtonState(s,p+1,b,(buttons>>b)&1);}
   s->ppu->noPixels=frame+1<TA_VS_OPTIONS_SETUP_FRAMES;snes_runFrame(s);snes_setSamples(s,audio,800);
@@ -49,7 +49,7 @@ static int partyLoad(const uint8_t*rom,unsigned bytes){
  s->ppu->noPixels=false;
  if(word(s->ram,0x2a8)!=2||s->ppu->mode!=2||word(s->ram,0x2ac)!=party.speed||word(s->ram,0x2ae)!=party.speed||word(s->ram,0x2ba)!=ta_vs_character_stage(ownCharacter))return TA_VS_CONFLICT;
  ta_vs_local_init(&game,s,NULL,party.seed);game.sendContext=&party;game.selectTarget=ta_vs_party_target;game.sendAttack=ta_vs_party_attack_to;game.receiveAttacks=partyReceiveAttacks;
- while(!partyLinksReady()){int r=partyPump();if(r)return r;if(party.phase==3)return TA_VS_CONFLICT;uint16_t pads[2];TA_Input_Poll(pads);if((pads[0]&12)==12)return TA_VS_CONFLICT;caption("PARTY GET READY","CONNECTING ALL PLAYERS",true);}
+ while(!partyLinksReady()){int r=partyPump();if(r)return r;if(party.phase==3||party.phase==0)return TA_VS_CONFLICT;uint16_t pads[2];TA_Input_Poll(pads);if((pads[0]&12)==12)return TA_VS_CONFLICT;caption("PARTY GET READY","CONNECTING ALL PLAYERS",true);}
  party.flags|=2;party.requestSent=0;
  while(party.phase==1){int r=partyPump();if(r)return r;uint16_t pads[2];TA_Input_Poll(pads);if((pads[0]&12)==12)return TA_VS_CONFLICT;caption("PARTY GET READY","WAITING FOR ALL BOARDS",true);}
  if(party.phase!=2)return TA_VS_CONFLICT;ta_vs_local_bind(&game);return 0;
@@ -74,7 +74,7 @@ static void partyResults(bool win,bool armed){
   if(party.speedRequests[seat]){snprintf(text,sizeof text,"REQUESTS SPEED %u",party.speedRequests[seat]);ta_vs_lan_text(screen,170,205+seat*39,text,uiMuted,2);}
  }
  ta_vs_lan_text(screen,44,368,"ALL REMATCH VOTES RETURN TO THE LOBBY",uiMuted,2);
- accountFooter(armed?"A REMATCH  B LEAVE":"RESULTS - INPUT LOCKED BRIEFLY",party.returning?"WAITING FOR OTHER PLAYERS":"CHOOSE SPEED THEN REQUEST REMATCH");
+ accountFooter(armed?"A REMATCH  B LEAVE":"RESULTS - INPUT LOCKED BRIEFLY",party.waitingCount?"NEW PLAYER JOINED - NEXT ROUND":party.returning?"WAITING FOR OTHER PLAYERS":"CHOOSE SPEED THEN REQUEST REMATCH");
 }
 static int partyPlay(void){
  Snes*s=game.s;unsigned frame=0,tick=0,revision=0,viewState=~0u,viewTarget=~0u;uint16_t previous=0,previousGame=0;bool lost=false,ended=false,inputArmed=false;uint32_t endedAt=0;
@@ -105,7 +105,7 @@ static int partyPlay(void){
    if(game.ticks&&word(s->ram,0x2a0)==5){lost=true;party.flags|=4;party.requestSent=0;ta_vs_local_bind(NULL);game.active=0;}
    N7_TICK(partyCapture);if(captureFrame){if(!ppu_taCopyActive224(s->ppu,(uint8_t*)capture,sizeof capture))return TA_VS_CONFLICT;TA_Video_SetPartyBackdrop(capture);if(ta_vs_picture_prepare(&pictureTx,capture,512,++revision))return TA_VS_BAD_PACKET;}
    uint8_t payload[TA_VS_SNAPSHOT_BYTES];size_t n=ta_vs_picture_next(&pictureTx,tick,payload,sizeof payload);
-   if(n)for(unsigned peer=0;peer<4;peer++)if(peer!=party.self&&(party.members&(1u<<peer))){int r=ta_vs_set_snapshot(party.peer+peer,payload,n);if(r)return r;}
+   if(n)for(unsigned peer=0;peer<4;peer++)if(peer!=party.self&&(party.members&party.present&(1u<<peer))){int r=ta_vs_set_snapshot(party.peer+peer,payload,n);if(r)return r;}
    N7_ADD(partyCapture,2);N7_TICK(partyVideo);if(!partyDisplayUpdate(viewState,viewTarget))return TA_VS_CONFLICT;
    bool submitted=!captureFrame&&TA_Video_EndR126(s->ppu);
 #if !defined(TA_NO_LOG) || !TA_NO_LOG
@@ -129,6 +129,7 @@ static int partyPlay(void){
 }
 static void runParty(const uint8_t*rom,unsigned bytes,uint32_t joinRoom=0,int hostMode=-1){
  uint64_t nonce=0;XNetRandom((BYTE*)&nonce,sizeof nonce);if(!nonce)nonce=__builtin_readcyclecounter()|1;
+ if(!accountEnsure())return;
  bool verifyAccount=accountAuthenticated,accountClosed=false;
  partyClose();discardWarm();TA_Video_SetLanOverlay(NULL,0);
  int error=ta_vs_udp_open(&partyTransport,0);if(error)return;
@@ -156,8 +157,15 @@ static void runParty(const uint8_t*rom,unsigned bytes,uint32_t joinRoom=0,int ho
    memcpy(party.authTicket,accountLink.reply+2,76);party.authState=1;party.requestSent=0;party.lastServer=GetTickCount();continue;
   }
   if(!accountClosed&&(!verifyAccount||party.authState==2)){if(verifyAccount&&!party.authenticated){error=-306;break;}leavePublic();ta_vs_udp_close(&transport);accountClosed=true;}
+  if(party.waiting){
+   accountFrame("JOINED PUBLIC PARTY",party.waiting==3?"ROUND FINISHED - WAITING FOR LOBBY":"MATCH IN PROGRESS - NEXT ROUND");
+   char waitText[64];snprintf(waitText,sizeof waitText,"ROOM %06lu  QUEUE %u",(unsigned long)party.room,(unsigned)party.queuePosition);ta_vs_lan_text(screen,44,190,waitText,uiGold,2);
+   ta_vs_lan_text(screen,44,250,"CURRENT MATCH CONTINUES",uiText,2);accountFooter("B LEAVE QUEUE","NEXT LOBBY STARTS AFTER REMATCH VOTES");continue;
+  }
   if(party.phase==1){
-   error=partyLoad(rom,bytes);int result=error?0:partyPlay();if(result<0)error=result;
+   error=partyLoad(rom,bytes);
+   if(error&&party.cancelled&&party.phase==0){releaseGame();TA_Video_SetPartyVisual(NULL);error=0;menuBegin(&pad);continue;}
+   int result=error?0:partyPlay();if(result<0)error=result;
    releaseGame();TA_Video_SetPartyVisual(NULL);
    if(error||result==0)break;
    memset(partyRemote,0,sizeof partyRemote);memset(partyPictures,0,sizeof partyPictures);memset(&partyDisplay,0,sizeof partyDisplay);menuBegin(&pad);continue;
@@ -185,5 +193,5 @@ static void runParty(const uint8_t*rom,unsigned bytes,uint32_t joinRoom=0,int ho
   }
  }
  partyClose();if(!accountClosed){leavePublic();ta_vs_udp_close(&transport);}
- if(error){menuBegin(&pad);for(;;){unsigned pressed=menuRead(&pad);if(pressed&(1u|0x100u))break;char detail[64];snprintf(detail,sizeof detail,"PARTY ERROR %d - A OR B BACK",error);caption(error==-304?"UPDATE PARTY RELAY TO R140":error==-10060?"PARTY RELAY UNAVAILABLE":error==-305?"ACCOUNT ALREADY IN THIS ROOM":error==-306?"UPDATE ACCOUNT SERVICE TO R140":"PARTY STOPPED",detail);}}
+ if(error){menuBegin(&pad);for(;;){unsigned pressed=menuRead(&pad);if(pressed&(1u|0x100u))break;char detail[64];snprintf(detail,sizeof detail,"PARTY ERROR %d - A OR B BACK",error);caption(error==-304?"UPDATE PARTY RELAY TO V1.0.8":error==-10060?"PARTY RELAY UNAVAILABLE":error==-302?"ROOM FULL OR CLOSED":error==-303?"GAME VERSION DOES NOT MATCH":error==-305?"ACCOUNT ALREADY IN A PARTY":error==-306?"PLEASE SIGN IN AGAIN":"PARTY STOPPED",detail);}}
 }

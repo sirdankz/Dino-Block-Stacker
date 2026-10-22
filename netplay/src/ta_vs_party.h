@@ -8,15 +8,15 @@ extern "C" {
 #define TA_PARTY_PLAYERS 4u
 #define TA_PARTY_PORT 34988u
 #define TA_PARTY_BYTES (TA_VS_PACKET_BYTES+33u)
-enum {TA_PARTY_HELLO=1,TA_PARTY_COOKIE,TA_PARTY_LIST,TA_PARTY_ROOMS,TA_PARTY_CREATE,TA_PARTY_JOIN,TA_PARTY_KEEP,TA_PARTY_STATE,TA_PARTY_DATA,TA_PARTY_LEAVE,TA_PARTY_ERROR,TA_PARTY_START,TA_PARTY_RETURN,TA_PARTY_SPEED,TA_PARTY_AUTH,TA_PARTY_AUTH_OK};
+enum {TA_PARTY_HELLO=1,TA_PARTY_COOKIE,TA_PARTY_LIST,TA_PARTY_ROOMS,TA_PARTY_CREATE,TA_PARTY_JOIN,TA_PARTY_KEEP,TA_PARTY_STATE,TA_PARTY_DATA,TA_PARTY_LEAVE,TA_PARTY_ERROR,TA_PARTY_START,TA_PARTY_RETURN,TA_PARTY_SPEED,TA_PARTY_AUTH,TA_PARTY_AUTH_OK,TA_PARTY_WAIT};
 enum {TA_PARTY_AUTO=0,TA_PARTY_FOCUS=1};
-typedef struct {uint32_t id;uint8_t count,speed,mode;char name[9];}TaPartyRoom;
+typedef struct {uint32_t id;uint8_t count,speed,mode,phase;char name[9];}TaPartyRoom;
 typedef struct {
  TaVsIdentity identity;TaVsSession peer[4];TaVsAttackInbox inbox[4];
  uint64_t nonce,roomNonce;uint32_t room,seed,epoch,revision,lastSend,lastServer,requestRoom;
  uint8_t cookie[16],haveCookie,self,host,speed,mode,members,alive,ready,loaded,phase,flags,request,requestSent,leaving,start,linked,target,stickHeld,rotation,txRotation,rxRotation,returning;
- uint8_t present,speedRequests[4],ranked,authenticated,capability,authState,speedRequest;uint8_t authTicket[76];
- char name[9],names[4][9];TaPartyRoom rooms[8];unsigned roomCount;int error;
+ uint8_t present,speedRequests[4],ranked,authenticated,capability,authState,speedRequest,waiting,waitingCount,queuePosition,cancelled;uint8_t authTicket[76];
+ char name[9],names[4][9];TaPartyRoom rooms[32];unsigned roomCount;int error;
 }TaVsParty;
 void ta_vs_party_init(TaVsParty*,const TaVsIdentity*,uint64_t nonce,const char*name,uint32_t now);
 void ta_vs_party_host(TaVsParty*,unsigned speed,unsigned mode);

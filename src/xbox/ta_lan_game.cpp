@@ -101,6 +101,7 @@ static unsigned publicAutoAttempted;
 #endif
 
 static bool publicMode,publicRoomClosed;
+static bool publicRehostRequested;
 #if defined(TA_VS_ACCOUNTS) && TA_VS_ACCOUNTS
 static TaAccountLink accountLink;
 static bool accountAuthenticated;
@@ -174,7 +175,11 @@ static unsigned long coarse[5];
 #endif
 static int pumpWork(bool display){
 #if defined(TA_VS_PUBLIC_ROOMS) && TA_VS_PUBLIC_ROOMS
- if(publicMode&&publicRoomClosed)return 0;
+ if(publicMode&&publicRoomClosed){
+  /* The game route is closed, but the encrypted result channel still drains. */
+  uint32_t now=GetTickCount();for(unsigned i=0;i<8;i++){uint8_t b[TA_PUB_BYTES];uint32_t from;uint16_t port;int n=ta_vs_udp_receive_any(&transport,b,sizeof b,&from,&port);if(n<=0)break;if(from==publicRoom.serverAddress&&port==publicRoom.serverPort)ta_account_receive(&accountLink,&publicRoom,b,(size_t)n);}
+  const uint8_t*packet;size_t bytes=ta_account_packet(&accountLink,now,&packet);if(bytes)ta_vs_udp_send_to(&transport,publicRoom.serverAddress,publicRoom.serverPort,packet,bytes);return 0;
+ }
 #endif
  uint32_t now=GetTickCount();
 #if defined(TA_VS_NETWORK_READY) && TA_VS_NETWORK_READY
@@ -266,7 +271,7 @@ static int pumpWork(bool display){
 #endif
  }
 #endif
- if(ta_vs_lan_timed_out(&lobby,now))return -10060;
+ if(ta_vs_lan_timed_out(&lobby,now)&&(!publicMode||(uint32_t)(now-publicRoom.lastServer)>5000u))return -10060;
  for(unsigned k=0;k<4;k++){
   if(display&&sourceReady&&ta_vs_lan_ready(&lobby)&&lobby.session.snapshotRevision==lobby.session.snapshotSent){
    uint8_t payload[TA_VS_SNAPSHOT_BYTES];size_t n;unsigned offset=0;

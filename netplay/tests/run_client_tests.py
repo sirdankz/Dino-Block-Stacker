@@ -35,4 +35,7 @@ with tempfile.TemporaryDirectory(prefix='dino-party-test-') as tmp:
     mobile=pathlib.Path(tmp)/('mobile_view_test.exe' if os.name=='nt' else 'mobile_view_test')
     mobile_args=[x for x in args[:source_at] if x not in {'-shared','-fPIC'}]+[str(root/'netplay/tests/test_mobile_view.c'),'-o',str(mobile)]
     subprocess.run(mobile_args,check=True);subprocess.run([str(mobile)],check=True)
-    print("Native client layout, presence, controls and mobile-view checks passed.")
+    scroll=pathlib.Path(tmp)/('ladder_scroll.exe' if os.name=='nt' else 'ladder_scroll')
+    scroll_args=[x for x in args[:source_at] if x not in {'-shared','-fPIC'}]+[str(root/'netplay/tests/test_ladder_scroll.c'),str(root/'netplay/src/ta_vs_account.c'),str(root/'netplay/src/ta_vs_public.c'),str(root/'third_party/monocypher/monocypher.c'),'-o',str(scroll)]
+    subprocess.run(scroll_args,check=True);subprocess.run([str(scroll)],check=True)
+    print("Native client layout, presence, controls and mobile-view and leaderboard checks passed.")

@@ -23,7 +23,8 @@ public final class TouchPad extends View {
     private SelectionListener selectionListener;
     private float unit;
     private int pressedMask;
-    private boolean editing;
+    private boolean editing, leaderboardMode;
+    public void setLeaderboardMode(boolean enabled){if(leaderboardMode!=enabled){leaderboardMode=enabled;clearPressed();invalidate();}}
     private int selected = -1;
     private int dragPointer = -1;
     private float dragDx, dragDy;
@@ -165,6 +166,7 @@ public final class TouchPad extends View {
 
     @Override protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        if(leaderboardMode&&!editing)return;
         paint.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
         paint.setTextAlign(Paint.Align.CENTER);
         for (int i = 0; i < controls.size(); i++) {
@@ -188,6 +190,7 @@ public final class TouchPad extends View {
 
     @Override public boolean onTouchEvent(MotionEvent event) {
         int action = event.getActionMasked();
+        if(leaderboardMode&&!editing){clearPressed();return true;}
         if (editing) {
             if (action == MotionEvent.ACTION_DOWN) {
                 selected = controlAt(event.getX(), event.getY());

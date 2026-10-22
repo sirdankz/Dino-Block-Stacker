@@ -56,6 +56,9 @@ const char*ta_android_cache_dir(void);
 #define TA_N12_CACHE_DIR ta_android_cache_dir()
 void TA_Log(const char*,...);
 void TA_Input_RightStick(int*,int*);
+void TA_Input_SetLeaderboard(unsigned enabled);
+int TA_Input_LeaderboardScroll(void);
+unsigned TA_Input_LeaderboardActions(void);
 /* Display-only 512x224 canvas; only columns 224..511 are drawn. */
 bool TA_Video_SetPartyOverlay(const uint32_t*,unsigned);
 bool TA_Video_SetPartyVisual(const TaPartyVisual*);

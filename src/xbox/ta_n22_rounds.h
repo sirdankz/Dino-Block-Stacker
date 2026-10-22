@@ -157,11 +157,12 @@ static void prepareNextRound(unsigned budget){
  }
 }
 static void showRoundResult(bool lost,bool inputReady){
- TA_Video_SetLanOverlay(NULL,0);accountFrame("MATCH RESULT","YOUR ROOM STAYS CONNECTED FOR REMATCHES");
+ TA_Video_SetLanOverlay(NULL,0);accountFrame("MATCH RESULT",roundState.peerLeft?"OPPONENT LEFT - YOUR RESULT IS KEPT":"YOUR ROOM STAYS CONNECTED FOR REMATCHES");
  ta_vs_lan_text(screen,44,157,lost?(peerLost?"DRAW":"YOU LOST"):"YOU WIN",lost?0x00f18791:0x005cdb8b,5);
- if(publicMode&&accountAuthenticated){char text[80];snprintf(text,sizeof text,"%s  %lu RATING",ownProfile.name,(unsigned long)ownProfile.rating);ta_vs_lan_text(screen,44,196,text,uiText,2);snprintf(text,sizeof text,"WINS %lu   LOSSES %lu",(unsigned long)ownProfile.wins,(unsigned long)ownProfile.losses);ta_vs_lan_text(screen,44,219,text,uiMuted,2);ta_vs_lan_text(screen,44,242,reportDone?accountNotice:"CONFIRMING BOTH MATCH RESULTS",uiMuted,2);}
- menuRow(286,"REMATCH",resultChoice==0);menuRow(324,"CHARACTER AND SPEED",resultChoice==1);menuRow(362,"LEAVE ROOM",resultChoice==2);
- accountFooter(inputReady?"D-PAD MOVE  A SELECT  B LEAVE":"RESULTS - INPUT LOCKED BRIEFLY",roundState.localVote?"REMATCH REQUESTED - WAITING":roundState.peerVote?"OPPONENT WANTS ANOTHER ROUND":"CHOOSE YOUR NEXT MATCH");
+ if(publicMode&&accountAuthenticated){char text[80];snprintf(text,sizeof text,"%s  %lu RATING",ownProfile.name,(unsigned long)ownProfile.rating);ta_vs_lan_text(screen,44,196,text,uiText,2);snprintf(text,sizeof text,"WINS %lu   LOSSES %lu",(unsigned long)ownProfile.wins,(unsigned long)ownProfile.losses);ta_vs_lan_text(screen,44,219,text,uiMuted,2);ta_vs_lan_text(screen,44,242,reportDone?accountNotice:"CONFIRMING RESULT WITH SERVER",uiMuted,2);}
+ if(roundState.peerLeft){ta_vs_lan_text(screen,44,286,"OPPONENT LEFT THE ROOM",uiGold,2);menuRow(362,"REOPEN PUBLIC ROOM",true);}
+ else{menuRow(286,"REMATCH",resultChoice==0);menuRow(324,"CHARACTER AND SPEED",resultChoice==1);menuRow(362,"LEAVE ROOM",resultChoice==2);}
+ accountFooter(inputReady?(roundState.peerLeft?"A REOPEN ROOM  B LEAVE":"D-PAD MOVE  A SELECT  B LEAVE"):"RESULTS - INPUT LOCKED BRIEFLY",roundState.localVote?"REMATCH REQUESTED - WAITING":roundState.peerVote?"OPPONENT WANTS ANOTHER ROUND":"CHOOSE YOUR NEXT MATCH");
 }
 static void drainRoundControls(void){uint32_t begin=GetTickCount();while(ta_vs_pending(&lobby.session)&&!roundState.peerLeft&&(uint32_t)(GetTickCount()-begin)<1500){if(pump(false))break;caption("LEAVING MATCH","WAITING FOR PEER ACKNOWLEDGEMENT",true);}}
 static int playRomRound(int&error){
@@ -181,7 +182,10 @@ static int playRomRound(int&error){
    uint16_t pads[2];TA_Input_Poll(pads);uint16_t pressed=pads[0]&~previous;previous=pads[0];++streamTick;
    if((error=pump(true))!=0)break;
    if(roundState.next){result=roundState.nextOptions?2:1;break;}
-   if(roundState.peerLeft)break;
+   if(roundState.peerLeft){if(!publicMode)break;ended=true;}
+   if(publicMode&&!ended&&!roundState.peerLeft&&ta_vs_lan_timed_out(&lobby,GetTickCount())){
+    caption("CHECKING OPPONENT CONNECTION","WAITING FOR SERVER - ROUND PAUSED",true);memset(audio,0,sizeof audio);TA_Audio_Submit(audio);continue;
+   }
    if(peerLost||peerQuit)ended=true;
    if(ended){
     /* Present results immediately, but wait one second and require A/B to
@@ -196,12 +200,14 @@ static int playRomRound(int&error){
     }else pressed=menuUpdate(&resultPad,pads[0]);
     accountReport(lost);
     if(!oldBoardReleased){ta_vs_local_bind(NULL);game.active=0;sourceReady=false;TA_Video_SetLanOverlay(NULL,0);if(game.s){TA_Video_ReleaseLanPpu(game.s->ppu);snes_free(game.s);game.s=NULL;}oldBoardReleased=true;}
-    prepareNextRound(4);
+    if(!roundState.peerLeft)prepareNextRound(4);
     roundState.phase=TA_ROUND_RESULT;game.active=0;ta_vs_local_bind(NULL);sourceReady=false;
     resultChoice=menuMove(resultChoice,3,pressed);
-    if((pressed&(1u<<8))||((pressed&1)&&resultChoice==2)){error=sendControl(7);sentLeave=!error;break;}
-    if(!roundState.localVote&&(pressed&1)){unsigned options=resultChoice==1;error=sendControl(options?8:5);if(error)break;ta_vs_round_local_vote(&roundState,options);}
-    unsigned offer=ta_vs_round_offer(&roundState,lobby.role);if(offer){error=sendControl(offer);if(error)break;roundState.next=roundState.epoch+1;roundState.nextOptions=(uint8_t)(offer==9);}
+    if(roundState.peerLeft&&(pressed&0x100u)){roundState.peerLeft=0;break;}
+    if((pressed&(1u<<8))||((pressed&1)&&resultChoice==2&&!roundState.peerLeft)){error=sendControl(7);sentLeave=!error;break;}
+    if(roundState.peerLeft&&(pressed&1))break;
+    if(!roundState.peerLeft&&!roundState.localVote&&(pressed&1)){unsigned options=resultChoice==1;error=sendControl(options?8:5);if(error)break;ta_vs_round_local_vote(&roundState,options);}
+    unsigned offer=roundState.peerLeft?0:ta_vs_round_offer(&roundState,lobby.role);if(offer){error=sendControl(offer);if(error)break;roundState.next=roundState.epoch+1;roundState.nextOptions=(uint8_t)(offer==9);}
     if(roundState.next){result=roundState.nextOptions?2:1;break;}
    }
    if(!ended&&(pads[0]&12)==12){quit=true;lost=true;if((error=sendControl(3))!=0)break;ended=true;}
@@ -280,6 +286,15 @@ static int playRomRound(int&error){
 }
 
 #include "ta_party_game.h"
+/* A surviving player opens a fresh advertised room after a peer departure.
+   Reauthenticate the new endpoint before publishing it; preserve speed/character. */
+static int reopenPublicHost(const uint8_t*rom,unsigned bytes){
+ int error=beginLobby(rom,bytes,0,true);if(error)return error;
+ uint32_t start=GetTickCount();TaMenuPad pad;menuBegin(&pad);
+ while(!publicRoom.haveCookie){if(menuRead(&pad)&0x100u)return 1;if((error=pump(false))!=0)return error;if((uint32_t)(GetTickCount()-start)>30000u)return -10060;caption("REOPENING PUBLIC ROOM","WAITING FOR ONLINE SERVICE",true);}
+ if(!accountEnsure())return 1;
+ lobby.role=0;publicRoom.speed=(uint8_t)sharedSpeed;ta_vs_public_host(&publicRoom);return 0;
+}
 extern "C" void TA_LanGame_Run(const uint8_t*rom,unsigned bytes){
  TA_Controls_Init(TA_N12_CACHE_DIR);taPresenceStart(rom,bytes);unsigned mainChoice=0;
  while(prepareAtLaunch(rom,bytes)){freeMenuCache();for(;;){uint16_t pads[2];TA_Input_Poll(pads);if(pads[0]&(0x100|1))break;caption("SETUP FAILED","A RETRY SETUP");}}
@@ -288,6 +303,7 @@ extern "C" void TA_LanGame_Run(const uint8_t*rom,unsigned bytes){
   releaseGame();leavePublic();ta_vs_udp_close(&transport);memset(&lobby,0,sizeof lobby);ta_vs_round_init(&roundState);
   peerReady=peerLoaded=peerLost=peerQuit=remoteRevision=streamTick=captureRevision=0;peerSettings=0;sourceReady=false;
   unsigned state=TA_LAN_SELECT,oldState=~0u;uint32_t localIp=0;TaMenuPad connectionPad;menuBegin(&connectionPad);int error=0;
+  if(publicRehostRequested){publicRehostRequested=false;error=reopenPublicHost(rom,bytes);if(error==1)continue;state=error?TA_LAN_ERROR:TA_LAN_ADDRESS;}
   for(;;){
    unsigned pressed=menuRead(&connectionPad);
    if(state!=TA_LAN_SELECT&&(pressed&(0x100|1)))break;
@@ -296,6 +312,7 @@ extern "C" void TA_LanGame_Run(const uint8_t*rom,unsigned bytes){
     if(flags&(XNET_GET_XNADDR_STATIC|XNET_GET_XNADDR_DHCP|XNET_GET_XNADDR_AUTO|XNET_GET_XNADDR_PPPOE)){localIp=address.ina.s_addr;if(publicMode)publicRoom.localAddress=localIp;error=pump(false);state=error?TA_LAN_ERROR:ta_vs_lan_ready(&lobby)?TA_LAN_CONNECTED:lobby.pinned?TA_LAN_HANDSHAKE:lobby.role?TA_LAN_JOIN_WAIT:TA_LAN_HOST_WAIT;}
    }
    if(state!=oldState){TA_Log("[TA N22 LAN] state=%u role=%u rejected=%u error=%d\n",state,(unsigned)lobby.role,lobby.rejected,error);oldState=state;}
+   if(publicMode&&roundState.peerLeft){publicRehostRequested=true;break;}
    if(state==TA_LAN_CONNECTED)break;
    if(state==TA_LAN_SELECT){accountFrame("VERSUS","CHOOSE A WAY TO PLAY");static const char*const names[]={"LAN JOIN","LAN HOST","ONLINE","CONTROLS","OFFLINE PLAY"};for(unsigned i=0;i<5;i++)menuRow(155+i*43,names[i],mainChoice==i);accountFooter("D-PAD MOVE  A SELECT",NULL);
    }else{static const char*const names[]={"CHOOSE CONNECTION","GETTING NETWORK ADDRESS","WAITING FOR A PLAYER","FINDING A LAN MATCH","CHECKING CONNECTION","CONNECTED","CONNECTION LOST","NETWORK ERROR"};
@@ -315,6 +332,7 @@ extern "C" void TA_LanGame_Run(const uint8_t*rom,unsigned bytes){
    TA_Log("[TA N22 ROUND] epoch=%lu keep_room=1 change_options=%u\n",(unsigned long)roundState.epoch,(unsigned)(next==2));
    ready=next==2?chooseRoundOptions(rom,bytes,error):1;
   }
+  if(publicMode&&roundState.peerLeft&&!error)publicRehostRequested=true;
   releaseGame();discardWarm();if(!error)drainRoundControls();leavePublic();ta_vs_udp_close(&transport);
   if(error){for(;;){uint16_t pads[2];TA_Input_Poll(pads);if(pads[0]&(0x100|1))break;caption(error==-10060?"CONNECTION LOST":"MATCH STOPPED","A BACK TO CONNECTION MENU");}}
  }

@@ -23,6 +23,10 @@ public final class GameActivity extends Activity implements InputManager.InputDe
     static native void nativeTouchButtons(int buttons);
     static native void nativeRightStick(int x,int y);
     static native void nativeViewport(int width,int height);
+    static native int nativeLeaderboardMode();
+    static native void nativeLeaderboardTouch(int rows,int action,int mode);
+    private final LeaderboardGesture leaderboardGesture=new LeaderboardGesture();
+    private final int[] leaderboardLocation=new int[2];
     static native void nativePrepare();
     static native void nativePause(boolean pause);
     static native void nativeStop();
@@ -34,7 +38,7 @@ public final class GameActivity extends Activity implements InputManager.InputDe
     private final Map<Integer,Pad> pads=new LinkedHashMap<>();private int touchMask;
     private static final class Pad {int slot,keys,axes;final Set<Integer> held=new HashSet<>();Pad(int s){slot=s;}}
     @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);immersive();
-        FrameLayout root=new FrameLayout(this);surface=new GLSurfaceView(this);surface.setEGLContextClientVersion(2);surface.setPreserveEGLContextOnPause(true);surface.setRenderer(new Screen());root.addView(surface);
+        FrameLayout root=new FrameLayout(this);surface=new GLSurfaceView(this);surface.setEGLContextClientVersion(2);surface.setPreserveEGLContextOnPause(true);surface.setRenderer(new Screen(this));root.addView(surface);
         touchMode=getIntent().getIntExtra("touch_mode",0);touch=new TouchPad(this,mask->{touchMask=mask;sendInputs();});root.addView(touch,new FrameLayout.LayoutParams(-1,-1));setContentView(root);
         input=(InputManager)getSystemService(INPUT_SERVICE);input.registerInputDeviceListener(this,null);for(int id:InputDevice.getDeviceIds())onInputDeviceAdded(id);updateTouch();
         try{WifiManager wifi=(WifiManager)getApplicationContext().getSystemService(WIFI_SERVICE);if(wifi!=null){multicast=wifi.createMulticastLock("TA LAN discovery");multicast.setReferenceCounted(false);multicast.acquire();}}catch(RuntimeException ignored){}
@@ -71,11 +75,32 @@ public final class GameActivity extends Activity implements InputManager.InputDe
         pendingChat=null;
         return result.get();
     }
+    @Override public boolean dispatchTouchEvent(MotionEvent event){
+        int mode=nativeLeaderboardMode();
+        if(leaderboardGesture.active()&&leaderboardGesture.session()!=mode){leaderboardGesture.cancel();return true;}
+        if(mode==0)return super.dispatchTouchEvent(event);
+        if(touch!=null)touch.setLeaderboardMode(true);
+        int action=event.getActionMasked();
+        surface.getLocationOnScreen(leaderboardLocation);
+        float imageH=Math.min(surface.getHeight()*.9f,surface.getWidth()*.9f*3f/4f),imageW=imageH*4f/3f;
+        if(imageW<=0||imageH<=0){leaderboardGesture.cancel();return true;}
+        float ox=(surface.getWidth()-imageW)*.5f,oy=(surface.getHeight()-imageH)*.5f;
+        int index=action==MotionEvent.ACTION_DOWN?0:event.findPointerIndex(leaderboardGesture.pointer());
+        if(action==MotionEvent.ACTION_CANCEL||index<0){leaderboardGesture.cancel();return true;}
+        float sx=event.getRawX()-event.getX()+event.getX(index)-leaderboardLocation[0];
+        float sy=event.getRawY()-event.getY()+event.getY(index)-leaderboardLocation[1];
+        float x=(sx-ox)*512f/imageW,y=(sy-oy)*480f/imageH;
+        if(action==MotionEvent.ACTION_DOWN){touchMask=0;if(touch!=null)touch.clearPressed();sendInputs();leaderboardGesture.begin(mode,event.getPointerId(0),x,y);}
+        else if(action==MotionEvent.ACTION_MOVE&&leaderboardGesture.active()){int rows=leaderboardGesture.move(x,y);if(rows!=0)nativeLeaderboardTouch(rows,0,mode);}
+        else if(action==MotionEvent.ACTION_UP&&leaderboardGesture.active()){int button=leaderboardGesture.finish(x,y);if(button!=0)nativeLeaderboardTouch(0,button,mode);}
+        else if(action==MotionEvent.ACTION_POINTER_UP&&event.getPointerId(event.getActionIndex())==leaderboardGesture.pointer())leaderboardGesture.cancel();
+        return true;
+    }
     @Override public void onBackPressed(){new AlertDialog.Builder(this).setTitle("Leave Dino Block Stacker?").setMessage("Leaving disconnects your current online or LAN match.").setPositiveButton("Leave",(d,w)->finish()).setNegativeButton("Stay",null).show();}
     private static boolean controller(InputDevice d){return d!=null&&((d.getSources()&InputDevice.SOURCE_GAMEPAD)==InputDevice.SOURCE_GAMEPAD||(d.getSources()&InputDevice.SOURCE_JOYSTICK)==InputDevice.SOURCE_JOYSTICK);}
     private Pad pad(int id){Pad p=pads.get(id);if(p!=null)return p;boolean[] used=new boolean[2];for(Pad q:pads.values())used[q.slot]=true;int slot=!used[0]?0:!used[1]?1:-1;if(slot<0)return null;p=new Pad(slot);pads.put(id,p);return p;}
     private void sendInputs(){nativeTouchButtons(touchMask);int[] mask={0,0};for(Pad p:pads.values())mask[p.slot]|=p.keys|p.axes;nativeButtons(0,mask[0]);nativeButtons(1,mask[1]);}
-    private void releaseInputs(){nativeRightStick(0,0);nativeTouchButtons(0);touchMask=0;for(Pad p:pads.values()){p.keys=p.axes=0;p.held.clear();}nativeButtons(0,0);nativeButtons(1,0);if(touch!=null)touch.clearPressed();}
+    private void releaseInputs(){leaderboardGesture.cancel();nativeRightStick(0,0);nativeTouchButtons(0);touchMask=0;for(Pad p:pads.values()){p.keys=p.axes=0;p.held.clear();}nativeButtons(0,0);nativeButtons(1,0);if(touch!=null)touch.clearPressed();}
     private void updateTouch(){boolean physicalPad=false;for(int id:InputDevice.getDeviceIds()){InputDevice d=InputDevice.getDevice(id);if(controller(d)&&!d.isVirtual()){physicalPad=true;break;}}boolean show=touchMode==0||(touchMode==1&&!physicalPad);if(!show)touch.clearPressed();touch.setVisibility(show?View.VISIBLE:View.GONE);}
     @Override public void onInputDeviceAdded(int id){if(controller(InputDevice.getDevice(id)))pad(id);if(touch!=null)updateTouch();}
     @Override public void onInputDeviceRemoved(int id){pads.remove(id);sendInputs();updateTouch();}
@@ -85,10 +110,12 @@ public final class GameActivity extends Activity implements InputManager.InputDe
     private static float axis(MotionEvent e,int a){InputDevice d=e.getDevice();InputDevice.MotionRange range=d==null?null:d.getMotionRange(a,e.getSource());float value=e.getAxisValue(a);return Math.abs(value)>Math.max(.25f,range==null?0:range.getFlat())?value:0;}
     @Override public boolean onGenericMotionEvent(MotionEvent e){if((e.getSource()&InputDevice.SOURCE_JOYSTICK)==InputDevice.SOURCE_JOYSTICK&&e.getAction()==MotionEvent.ACTION_MOVE){Pad p=pad(e.getDeviceId());if(p!=null){float x=axis(e,MotionEvent.AXIS_X),y=axis(e,MotionEvent.AXIS_Y),hx=axis(e,MotionEvent.AXIS_HAT_X),hy=axis(e,MotionEvent.AXIS_HAT_Y);int mask=0;if(x<0||hx<0)mask|=0x40;if(x>0||hx>0)mask|=0x80;if(y<0||hy<0)mask|=0x10;if(y>0||hy>0)mask|=0x20;if(e.getAxisValue(MotionEvent.AXIS_LTRIGGER)>.25f||e.getAxisValue(MotionEvent.AXIS_BRAKE)>.25f)mask|=0x400;if(e.getAxisValue(MotionEvent.AXIS_RTRIGGER)>.25f||e.getAxisValue(MotionEvent.AXIS_GAS)>.25f)mask|=0x800;if(p.slot==0)nativeRightStick((int)(e.getAxisValue(MotionEvent.AXIS_Z)*32767),(int)(-e.getAxisValue(MotionEvent.AXIS_RZ)*32767));p.axes=mask;sendInputs();}return true;}return super.onGenericMotionEvent(e);}
     private static final class Screen implements GLSurfaceView.Renderer {
+        private final GameActivity owner;private int lastLeaderboardMode;
+        Screen(GameActivity activity){owner=activity;}
         private final ByteBuffer pixels=ByteBuffer.allocateDirect(512*480*4).order(ByteOrder.nativeOrder());private final FloatBuffer vertices=ByteBuffer.allocateDirect(16*4).order(ByteOrder.nativeOrder()).asFloatBuffer();private int program,texture,width,height,rows=480;
         private int shader(int type,String source){int s=GLES20.glCreateShader(type);GLES20.glShaderSource(s,source);GLES20.glCompileShader(s);int[] ok={0};GLES20.glGetShaderiv(s,GLES20.GL_COMPILE_STATUS,ok,0);if(ok[0]==0)throw new IllegalStateException(GLES20.glGetShaderInfoLog(s));return s;}
         @Override public void onSurfaceCreated(GL10 unused,EGLConfig config){program=GLES20.glCreateProgram();GLES20.glAttachShader(program,shader(GLES20.GL_VERTEX_SHADER,"attribute vec2 pos;attribute vec2 uv;varying mediump vec2 tc;void main(){gl_Position=vec4(pos,0.0,1.0);tc=uv;}"));GLES20.glAttachShader(program,shader(GLES20.GL_FRAGMENT_SHADER,"precision mediump float;uniform sampler2D image;varying mediump vec2 tc;void main(){gl_FragColor=texture2D(image,tc);}"));GLES20.glLinkProgram(program);int[] linked={0};GLES20.glGetProgramiv(program,GLES20.GL_LINK_STATUS,linked,0);if(linked[0]==0)throw new IllegalStateException(GLES20.glGetProgramInfoLog(program));int[] t={0};GLES20.glGenTextures(1,t,0);texture=t[0];GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,texture);GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER,GLES20.GL_NEAREST);GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MAG_FILTER,GLES20.GL_NEAREST);GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_S,GLES20.GL_CLAMP_TO_EDGE);GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_T,GLES20.GL_CLAMP_TO_EDGE);GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D,0,GLES20.GL_RGBA,512,480,0,GLES20.GL_RGBA,GLES20.GL_UNSIGNED_BYTE,null);nativeRefresh();}
         @Override public void onSurfaceChanged(GL10 unused,int w,int h){width=w;height=h;nativeViewport(w,h);}
-        @Override public void onDrawFrame(GL10 unused){GLES20.glViewport(0,0,width,height);GLES20.glClearColor(0,0,0,1);GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,texture);int updated=nativeCopyFrame(pixels);if(updated!=0){rows=updated;pixels.position(0);GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D,0,0,0,512,rows,GLES20.GL_RGBA,GLES20.GL_UNSIGNED_BYTE,pixels);}boolean party=rows!=224&&rows!=480;float aspect=party?(float)width/height:4f/3f;float margin=party?1f:.9f;int h=(int)(height*margin),w=(int)(h*aspect);if(w>width*margin){w=(int)(width*margin);h=(int)(w/aspect);}GLES20.glViewport((width-w)/2,(height-h)/2,w,h);GLES20.glUseProgram(program);float bottom=(float)rows/480;vertices.clear();vertices.put(new float[]{-1,-1,0,bottom,1,-1,1,bottom,-1,1,0,0,1,1,1,0}).position(0);int pos=GLES20.glGetAttribLocation(program,"pos"),uv=GLES20.glGetAttribLocation(program,"uv");vertices.position(0);GLES20.glVertexAttribPointer(pos,2,GLES20.GL_FLOAT,false,16,vertices);vertices.position(2);GLES20.glVertexAttribPointer(uv,2,GLES20.GL_FLOAT,false,16,vertices);GLES20.glEnableVertexAttribArray(pos);GLES20.glEnableVertexAttribArray(uv);GLES20.glUniform1i(GLES20.glGetUniformLocation(program,"image"),0);GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP,0,4);}
+        @Override public void onDrawFrame(GL10 unused){int mode=nativeLeaderboardMode();if(mode!=lastLeaderboardMode){lastLeaderboardMode=mode;owner.runOnUiThread(()->{if(owner.touch!=null)owner.touch.setLeaderboardMode(mode!=0);});}GLES20.glViewport(0,0,width,height);GLES20.glClearColor(0,0,0,1);GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,texture);int updated=nativeCopyFrame(pixels);if(updated!=0){rows=updated;pixels.position(0);GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D,0,0,0,512,rows,GLES20.GL_RGBA,GLES20.GL_UNSIGNED_BYTE,pixels);}boolean party=rows!=224&&rows!=480;float aspect=party?(float)width/height:4f/3f;float margin=party?1f:.9f;int h=(int)(height*margin),w=(int)(h*aspect);if(w>width*margin){w=(int)(width*margin);h=(int)(w/aspect);}GLES20.glViewport((width-w)/2,(height-h)/2,w,h);GLES20.glUseProgram(program);float bottom=(float)rows/480;vertices.clear();vertices.put(new float[]{-1,-1,0,bottom,1,-1,1,bottom,-1,1,0,0,1,1,1,0}).position(0);int pos=GLES20.glGetAttribLocation(program,"pos"),uv=GLES20.glGetAttribLocation(program,"uv");vertices.position(0);GLES20.glVertexAttribPointer(pos,2,GLES20.GL_FLOAT,false,16,vertices);vertices.position(2);GLES20.glVertexAttribPointer(uv,2,GLES20.GL_FLOAT,false,16,vertices);GLES20.glEnableVertexAttribArray(pos);GLES20.glEnableVertexAttribArray(uv);GLES20.glUniform1i(GLES20.glGetUniformLocation(program,"image"),0);GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP,0,4);}
     }
 }

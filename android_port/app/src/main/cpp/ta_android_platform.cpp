@@ -25,6 +25,25 @@ extern "C" {
 using Clock=std::chrono::steady_clock;
 static std::atomic<bool> stopped{false},paused{false},sessionRunning{false};
 static std::atomic<unsigned> buttons[2],touchButtons;
+static std::atomic<unsigned> leaderboardMode{0},leaderboardActions{0};
+static std::atomic<int> leaderboardScroll{0};
+static unsigned leaderboardGeneration;
+static std::mutex leaderboardTouchMutex;
+extern "C" void TA_Input_SetLeaderboard(unsigned enabled){
+ std::lock_guard<std::mutex> guard(leaderboardTouchMutex);
+ leaderboardScroll=0;leaderboardActions=0;
+ if(enabled){if(!++leaderboardGeneration)++leaderboardGeneration;leaderboardMode=leaderboardGeneration;}else leaderboardMode=0;
+}
+extern "C" int TA_Input_LeaderboardScroll(void){return leaderboardScroll.exchange(0);}
+extern "C" unsigned TA_Input_LeaderboardActions(void){return leaderboardActions.exchange(0);}
+extern "C" JNIEXPORT jint JNICALL Java_org_dinoblockstacker_app_GameActivity_nativeLeaderboardMode(JNIEnv*,jclass){return (jint)leaderboardMode.load();}
+extern "C" JNIEXPORT void JNICALL Java_org_dinoblockstacker_app_GameActivity_nativeLeaderboardTouch(JNIEnv*,jclass,jint rows,jint action,jint mode){
+ std::lock_guard<std::mutex> guard(leaderboardTouchMutex);
+ if(!mode||leaderboardMode.load()!=(unsigned)mode)return;
+ int old=leaderboardScroll.load(),next;
+ do{next=old+rows;if(next>64)next=64;if(next< -64)next=-64;}while(!leaderboardScroll.compare_exchange_weak(old,next));
+ leaderboardActions.fetch_or((unsigned)action&0x101u);
+}
 static std::mutex frameMutex;static uint32_t displayFrame[512*480];static unsigned frameHeight=480,frameRevision,lastCopied=~0u;
 static const TaPartyVisual*partyVisual;static std::atomic<bool> partyCacheValid{false};static std::atomic<int> viewportWidth{0},viewportHeight{0};
 static unsigned long partyStats[4];
@@ -103,8 +122,8 @@ extern "C" void TA_Video_ReleaseLanPpu(Ppu*){}
 extern "C" void TA_Audio_Submit(const int16_t*p){if(gameEnv&&audioArray&&audioMethod){gameEnv->SetShortArrayRegion(audioArray,0,1600,(const jshort*)p);gameEnv->CallVoidMethod(gameActivity,audioMethod,audioArray);if(gameEnv->ExceptionCheck()){gameEnv->ExceptionClear();TA_Log("Audio output unavailable; guest APU timing retained\n");audioMethod=NULL;}}}
 extern "C" JNIEXPORT void JNICALL Java_org_dinoblockstacker_app_GameActivity_nativePrepare(JNIEnv*,jclass){if(!sessionRunning){stopped=false;paused=false;buttons[0]=buttons[1]=0;touchButtons=0;}}
 extern "C" JNIEXPORT void JNICALL Java_org_dinoblockstacker_app_GameActivity_nativeButtons(JNIEnv*,jclass,jint player,jint mask){if(player>=0&&player<2)buttons[player]=ta_controls_physical_bits((unsigned)mask);}
-extern "C" JNIEXPORT void JNICALL Java_org_dinoblockstacker_app_GameActivity_nativePause(JNIEnv*,jclass,jboolean p){paused=p;buttons[0]=buttons[1]=0;touchButtons=0;}
-extern "C" JNIEXPORT void JNICALL Java_org_dinoblockstacker_app_GameActivity_nativeStop(JNIEnv*,jclass){stopped=true;paused=false;buttons[0]=buttons[1]=0;touchButtons=0;}
+extern "C" JNIEXPORT void JNICALL Java_org_dinoblockstacker_app_GameActivity_nativePause(JNIEnv*,jclass,jboolean p){paused=p;buttons[0]=buttons[1]=0;touchButtons=0;leaderboardScroll=0;leaderboardActions=0;}
+extern "C" JNIEXPORT void JNICALL Java_org_dinoblockstacker_app_GameActivity_nativeStop(JNIEnv*,jclass){stopped=true;paused=false;buttons[0]=buttons[1]=0;touchButtons=0;leaderboardMode=0;leaderboardScroll=0;leaderboardActions=0;}
 extern "C" JNIEXPORT void JNICALL Java_org_dinoblockstacker_app_GameActivity_nativeRefresh(JNIEnv*,jclass){std::lock_guard<std::mutex> lock(frameMutex);lastCopied=~0u;}
 extern "C" JNIEXPORT jint JNICALL Java_org_dinoblockstacker_app_GameActivity_nativeCopyFrame(JNIEnv*env,jclass,jobject buffer){
  void*memory=env->GetDirectBufferAddress(buffer);if(!memory||env->GetDirectBufferCapacity(buffer)<512*480*4)return 0;std::lock_guard<std::mutex> lock(frameMutex);if(lastCopied==frameRevision)return 0;

@@ -65,3 +65,18 @@ Thumbs.db
 *.service
 /UPDATE_SERVER.ps1
 /install_r*.py
+
+# Hosted service implementation and local publication folders
+/Private/
+/outputs/
+/work/
+**/Private/**
+**/Server-Update/**
+**/ta_room_server.py
+**/ta_accounts.py
+**/ta_party_server.py
+**/dino_party_accounts.py
+**/dino_party_ratings.py
+**/dino_forfeit.py
+**/UPDATE_SERVER.ps1
+**/install_v*.py

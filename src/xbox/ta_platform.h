@@ -54,6 +54,9 @@ void TA_Audio_Submit(const int16_t* stereo800);
 void TA_Audio_Shutdown(void);
 void TA_Input_Init(void);
 void TA_Input_RightStick(int*,int*);
+void TA_Input_SetLeaderboard(unsigned enabled);
+int TA_Input_LeaderboardScroll(void);
+unsigned TA_Input_LeaderboardActions(void);
 /* Display-only 512x224 canvas; only columns 224..511 are drawn. */
 bool TA_Video_SetPartyOverlay(const uint32_t*,unsigned);
 bool TA_Video_SetPartyVisual(const TaPartyVisual*);
