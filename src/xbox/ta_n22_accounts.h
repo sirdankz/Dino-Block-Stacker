@@ -40,14 +40,29 @@ static void accountProfiles(bool write){
 }
 static void accountRect(int x,int y,int w,int h,uint32_t color){for(int j=y;j<y+h&&j<480;j++)for(int i=x;i<x+w&&i<512;i++)if(i>=0&&j>=0)screen[j*512+i]=color;}
 static const uint32_t uiText=0x00f1f3f8,uiMuted=0x00bdc7d5,uiGold=0x00f1cb72,uiInk=0x00101928;
-static void accountSelected(int y,int h){ta_n17_panel(35,y,442,h);accountRect(35,y,4,h,0x007dd9e8);accountRect(42,y+h/2-2,5,5,uiGold);}
+/* The framebuffer is opaque XRGB, so a translucent selector must be
+   alpha-composited into its existing pixels before the label is rendered.
+   This is menu-only work and never touches the 60 FPS SNES frame path. */
+static void accountHighlight(int x,int y,int w,int h){
+ const unsigned alpha=104,keep=256-alpha;
+ const unsigned tintR=0x67,tintG=0xb8,tintB=0xe8;
+ const int left=x<0?0:x,top=y<0?0:y,right=x+w>512?512:x+w,bottom=y+h>480?480:y+h;
+ for(int yy=top;yy<bottom;yy++)for(int xx=left;xx<right;xx++){
+  uint32_t*p=&screen[yy*512+xx],c=*p;
+  const unsigned r=((((c>>16)&255)*keep)+(tintR*alpha))>>8;
+  const unsigned g=((((c>>8)&255)*keep)+(tintG*alpha))>>8;
+  const unsigned b=(((c&255)*keep)+(tintB*alpha))>>8;
+  *p=(r<<16)|(g<<8)|b;
+ }
+}
+static void accountSelected(int y,int h){accountHighlight(35,y,442,h);}
 static void accountButtonLine(int x,int y,const char*line){
  if(!line)return;for(unsigned i=0;line[i];i++,x+=12){char text[2]={line[i],0};bool button=(!i||line[i-1]==' ')&&line[i+1]==' '&&(line[i]=='A'||line[i]=='B'||line[i]=='X'||line[i]=='Y');
   uint32_t c=button?(line[i]=='A'?0x0096e3b2:line[i]=='B'?0x00f1a0aa:line[i]=='X'?0x009cbdff:uiGold):uiMuted;ta_vs_lan_text(screen,x,y,text,c,2);
  }
 }
 static void accountFrame(const char*title,const char*sub){
- ta_n17_backdrop();ta_vs_lan_text(screen,36,34,"DINO BLOCK STACKER",0x007dd9e8,3);ta_vs_lan_text(screen,438,34,"N22",uiMuted,2);ta_vs_lan_text(screen,36,65,title,uiText,4);
+ ta_n17_backdrop();ta_vs_lan_text(screen,36,34,"DINO BLOCK STACKER",0x007dd9e8,3);ta_vs_lan_text(screen,438,34,"R133",uiMuted,2);ta_vs_lan_text(screen,36,65,title,uiText,4);
  if(sub)ta_vs_lan_text(screen,36,97,sub,uiMuted,2);
  accountRect(26,135,460,1,0x003a5363);ta_n17_panel(26,143,460,252);ta_n17_panel(26,403,460,55);
 }
@@ -57,7 +72,7 @@ static bool accountOpen(void){
  uint8_t key[32],secret[32];memcpy(key,ta_n17_account_key,sizeof key);
  if(XNetRandom(secret,sizeof secret)){strcpy(accountNotice,"ACCOUNT NETWORK SETUP FAILED");return false;}int result=ta_account_init(&accountLink,secret,key);memset(secret,0,sizeof secret);return result==0;
 }
-static const char*accountStatus(unsigned s){return s==2?"USERNAME ALREADY TAKEN":s==3?"SIGN IN FAILED - CHECK PASSWORD":s==4?"PLEASE WAIT THEN TRY AGAIN":s==5?"PLEASE SIGN IN FIRST":s==6?"MATCH NOT ELIGIBLE FOR RANKING":s==7?"WAITING FOR BOTH MATCH RESULTS":s==8?"RESULTS DISAGREE - STATS UNCHANGED":"CHECK NAME AND PASSWORD";}
+static const char*accountStatus(unsigned s){return s==2?"USERNAME ALREADY TAKEN":s==3?"SIGN IN FAILED - CHECK PASSWORD":s==4?"PLEASE WAIT THEN TRY AGAIN":s==5?"PLEASE SIGN IN FIRST":s==6?"MATCH NOT ELIGIBLE FOR RANKING":s==7?"WAITING FOR BOTH MATCH RESULTS":s==8?"RESULTS DISAGREE - STATS UNCHANGED":s==10?"MESSAGE BLOCKED - HATE SPEECH":s==11?"SLOW DOWN - TRY AGAIN":s==12?"INVALID CHAT MESSAGE":"CHECK NAME AND PASSWORD";}
 static bool accountCall(unsigned command,const void*data,unsigned bytes,const char*label,bool quiet=false){
  accountLastStatus=-1;
  if(!accountLink.ready){strcpy(accountNotice,"UPDATE SERVER AND COPY ACCOUNT KEY");return false;}
@@ -82,7 +97,7 @@ static unsigned menuRead(TaMenuPad*p){uint16_t pads[2];TA_Input_Poll(pads);retur
 static unsigned menuMove(unsigned selected,unsigned count,unsigned pressed){if(!count)return 0;if(pressed&0x10)selected=selected?selected-1:count-1;if(pressed&0x20)selected=(selected+1)%count;return selected;}
 static void menuRow(unsigned y,const char*label,bool selected,unsigned scale=3){if(selected)accountSelected((int)y-8,31);ta_vs_lan_text(screen,58,(int)y,label,selected?uiGold:uiText,(int)scale);}
 static void menuActions(const char*const*labels,unsigned count,unsigned selected,bool submit=true){
- unsigned width=460/count;for(unsigned i=0;i<count;i++){unsigned x=26+i*width;ta_n17_panel((int)x,405,(int)width-4,29);if(i==selected)accountRect((int)x,431,(int)width-4,2,0x007dd9e8);ta_vs_lan_text(screen,(int)x+8,415,labels[i],i==selected?uiGold:uiText,2);}accountButtonLine(36,438,"D-PAD CHOOSE  A SELECT  B BACK");if(submit)TA_Video_Submit((const uint8_t*)screen);
+ unsigned width=460/count;for(unsigned i=0;i<count;i++){unsigned x=26+i*width;ta_n17_panel((int)x,405,(int)width-4,29);if(i==selected)accountHighlight((int)x,405,(int)width-4,29);ta_vs_lan_text(screen,(int)x+8,415,labels[i],i==selected?uiGold:uiText,2);}accountButtonLine(36,438,"D-PAD CHOOSE  A SELECT  B BACK");if(submit)TA_Video_Submit((const uint8_t*)screen);
 }
 static bool accountKeyboard(const char*title,const char*label,char*out,unsigned maximum,bool password,unsigned minimum=4){
  static const char keys[]="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";unsigned key=0,length=0;char value[33]={0};TaMenuPad pad;menuBegin(&pad);
@@ -92,7 +107,7 @@ static bool accountKeyboard(const char*title,const char*label,char*out,unsigned 
   else if((pressed&1)&&key<38&&length<maximum){value[length++]=keys[key];value[length]=0;}
   if(((pressed&8)||((pressed&1)&&key==39))&&length>=minimum){memcpy(out,value,length+1);memset(value,0,sizeof value);return true;}
   char hint[80];snprintf(hint,sizeof hint,"%u TO %u CHARACTERS%s",minimum,maximum,password?" - PASSWORD HIDDEN":" - A-Z 0-9 - _");accountFrame(title,hint);char shown[40]={0};if(password)memset(shown,'X',length);else memcpy(shown,value,length);ta_vs_lan_text(screen,42,156,label,uiMuted,2);ta_vs_lan_text(screen,42,179,shown,uiText,3);
-  for(unsigned k=0;k<40;k++){unsigned x=48+(k%8)*54,y=224+(k/8)*30;if(k==key){ta_n17_panel(x-5,y-7,52,26);accountRect(x-5,y+17,52,2,0x007dd9e8);}char ch[2]={k<38?keys[k]:' ',0};ta_vs_lan_text(screen,x,y,k==38?"DEL":k==39?"DONE":ch,k==key?uiGold:uiText,k<38?3:2);}
+  for(unsigned k=0;k<40;k++){unsigned x=48+(k%8)*54,y=224+(k/8)*30;if(k==key)accountHighlight(x-5,y-7,52,26);char ch[2]={k<38?keys[k]:' ',0};ta_vs_lan_text(screen,x,y,k==38?"DEL":k==39?"DONE":ch,k==key?uiGold:uiText,k<38?3:2);}
   accountFooter("D-PAD MOVE  A SELECT  B CANCEL","DEL: ERASE   DONE: CONTINUE");
  }
 }
@@ -186,19 +201,63 @@ static int accountBrowseRooms(void){
   selectedRoom=choice<count?publicRoom.rooms[choice].id:0;accountFooter("D-PAD MOVE  A SELECT  B BACK",publicRoom.mode==TA_PUB_JOINING?"JOINING ROOM":"SELECT A ROOM OR REFRESH THE LIST");
  }
 }
-static int accountBrowser(uint32_t*localIp,uint16_t previous){
- (void)previous;accountFrame("PUBLIC ROOMS","CONNECTING TO YOUR SAVED PROFILE");accountFooter("B BACK",NULL);unsigned choice=0;bool triedResume=false;uint32_t refreshed=0;TaMenuPad pad;menuBegin(&pad);const char*items[]={"BROWSE ROOMS","HOST PUBLIC ROOM","MY PROFILE","LEADERBOARD","PROFILES","BACK"};
- for(;;){unsigned pressed=menuRead(&pad);if(pressed&0x100){leavePublic();ta_vs_udp_close(&transport);return 1;}
-  XNADDR address;memset(&address,0,sizeof address);DWORD status=XNetGetTitleXnAddr(&address);*localIp=address.ina.s_addr;if(status&(XNET_GET_XNADDR_STATIC|XNET_GET_XNADDR_DHCP|XNET_GET_XNADDR_AUTO|XNET_GET_XNADDR_PPPOE))publicRoom.localAddress=*localIp;int error=pump(false);if(error)return error;
-  if(publicRoom.haveRoom)return 0;if(publicRoom.haveCookie&&!triedResume){triedResume=true;if(!accountAuthenticated&&profileCount&&accountLink.ready)accountAuthenticate(3,savedProfiles[profileActive].name,savedProfiles[profileActive].token);}
-  choice=menuMove(choice,6,pressed);if(pressed&1){if(choice==5){leavePublic();ta_vs_udp_close(&transport);return 1;}if(choice==0){int result=accountBrowseRooms();if(result==0)return 0;if(result<0)return -10060;}else if(choice==1){if(accountEnsure()){lobby.role=0;ta_vs_public_host(&publicRoom);}}else if(choice==2)accountStatsMenu();else if(choice==3)accountLadderMenu();else accountProfileMenu();menuBegin(&pad);}
-  if(accountAuthenticated&&publicRoom.mode==TA_PUB_BROWSE&&(!refreshed||(uint32_t)(GetTickCount()-refreshed)>5000)){accountDirectory();refreshed=GetTickCount();}
-  char sub[64];if(accountAuthenticated)snprintf(sub,sizeof sub,"%s   %s   %lu",ownProfile.name,ta_account_tier(ownProfile.rating),(unsigned long)ownProfile.rating);else if(publicAutoAttempted&&!publicClock.armed)strcpy(sub,"GETTING AUTOMATIC NETWORK ADDRESS");else if(publicAutoAttempted&&!publicRoom.haveCookie)strcpy(sub,"RETRYING YOUR CONNECTION");else strcpy(sub,accountNotice);accountFrame("PUBLIC ROOMS",sub);for(unsigned i=0;i<6;i++)menuRow(156+i*37,items[i],choice==i);accountFooter("D-PAD MOVE  A SELECT  B BACK",publicRoom.mode==TA_PUB_HOST?"CREATING YOUR ROOM":"YOUR PROFILE STAYS SIGNED IN");
+#include "ta_n22_social.h"
+static int accountPublicRoomsMenu(void){
+ unsigned choice=0;TaMenuPad pad;menuBegin(&pad);
+ const char*items[]={"BROWSE ROOMS","HOST PUBLIC ROOM","BACK"};
+ for(;;){unsigned pressed=menuRead(&pad);if(pump(false))return -10060;
+  if(pressed&0x100)return (publicRoom.haveRoom||publicRoom.mode==TA_PUB_HOST||publicRoom.mode==TA_PUB_JOINING)?2:1;
+  if(publicRoom.haveRoom)return 0;
+  choice=menuMove(choice,3,pressed);
+  if(pressed&1){if(choice==2)return 1;
+   if(choice==0){int result=accountBrowseRooms();if(result<=0)return result;}
+   else if(accountEnsure()){lobby.role=0;ta_vs_public_host(&publicRoom);}
+   menuBegin(&pad);
+  }
+  accountFrame("PUBLIC ROOMS",publicRoom.mode==TA_PUB_HOST?"CREATING ROOM":"BROWSE OR HOST A MATCH");
+  for(unsigned i=0;i<3;i++)menuRow(172+i*62,items[i],i==choice);
+  accountFooter("D-PAD MOVE  A SELECT  B BACK",NULL);
+ }
+}
+static int accountBrowser(uint32_t*localIp,uint16_t previous,const uint8_t*rom,unsigned bytes){
+ (void)previous;accountFrame("ONLINE","CONNECTING TO ONLINE SERVICE");accountFooter("B BACK",NULL);
+ unsigned choice=0;bool triedResume=false;uint32_t refreshed=0;
+ TaMenuPad pad;menuBegin(&pad);
+ const char*items[]={"PUBLIC ROOMS","PROFILE","WORLD CHAT","LEADERBOARDS","BACK"};
+ taSocialReset();
+ for(;;){
+  unsigned pressed=menuRead(&pad);
+  if(pressed&0x100){taSocialCancel();leavePublic();ta_vs_udp_close(&transport);return 1;}
+  XNADDR address;memset(&address,0,sizeof address);DWORD status=XNetGetTitleXnAddr(&address);
+  *localIp=address.ina.s_addr;
+  if(status&(XNET_GET_XNADDR_STATIC|XNET_GET_XNADDR_DHCP|XNET_GET_XNADDR_AUTO|XNET_GET_XNADDR_PPPOE))publicRoom.localAddress=*localIp;
+  int error=pump(false);if(error){taSocialCancel();return error;}
+  if(publicRoom.haveRoom){taSocialCancel();return 0;}
+  if(publicRoom.haveCookie&&!triedResume){triedResume=true;if(!accountAuthenticated&&profileCount&&accountLink.ready)accountAuthenticate(3,savedProfiles[profileActive].name,savedProfiles[profileActive].token);}
+  if(accountAuthenticated)taSocialTick(GetTickCount(),true);
+  choice=menuMove(choice,5,pressed);
+  if(pressed&1){
+   taSocialCancel();
+   if(choice==4){leavePublic();ta_vs_udp_close(&transport);return 1;}
+   if(choice==0){int result=accountPublicRoomsMenu();if(result==0)return 0;if(result<0)return result;
+    if(result==2){leavePublic();ta_vs_udp_close(&transport);int reconnect=beginLobby(rom,bytes,1,true);if(reconnect)return reconnect;triedResume=false;taSocialReset();} }
+   else if(choice==1)accountStatsMenu();
+   else if(choice==2)taSocialChatMenu();
+   else accountLadderMenu();
+   menuBegin(&pad);
+  }
+  char sub[100];if(accountAuthenticated)snprintf(sub,sizeof sub,"SIGNED IN: %s",ownProfile.name);
+  else if(publicAutoAttempted&&!publicClock.armed)strcpy(sub,"GETTING NETWORK ADDRESS");
+  else strcpy(sub,accountNotice);
+  accountFrame("ONLINE",sub);
+  for(unsigned i=0;i<5;i++)menuRow(154+i*43,items[i],choice==i);
+  taSocialDrawCounts(384);
+  accountFooter("D-PAD MOVE  A SELECT  B BACK",NULL);
  }
 }
 static bool accountCharacterMenu(unsigned*value){
  unsigned choice=*value;TaMenuPad pad;menuBegin(&pad);
- for(;;){unsigned pressed=menuRead(&pad);if(pump(false)||roundState.peerLeft||pressed&0x100)return false;choice=menuMove(choice,13,pressed);if(pressed&1){*value=choice;return true;}accountFrame("CHARACTER","HIGHLIGHT A CHARACTER THEN SELECT");unsigned first=choice>5?choice-5:0;for(unsigned row=0;row<6&&first+row<13;row++){unsigned i=first+row,y=156+row*35;if(i==choice){ta_n17_panel(35,y-8,324,29);accountRect(35,y-8,4,29,0x007dd9e8);}ta_vs_lan_text(screen,46,y,ta_vs_character_name(i),i==choice?uiGold:uiText,2);}ta_vs_preview_draw(&previewAtlas,choice,screen,374,211);accountFooter("D-PAD MOVE  A CHOOSE  B CANCEL",NULL);}
+ for(;;){unsigned pressed=menuRead(&pad);if(pump(false)||roundState.peerLeft||pressed&0x100)return false;choice=menuMove(choice,13,pressed);if(pressed&1){*value=choice;return true;}accountFrame("CHARACTER","HIGHLIGHT A CHARACTER THEN SELECT");unsigned first=choice>5?choice-5:0;for(unsigned row=0;row<6&&first+row<13;row++){unsigned i=first+row,y=156+row*35;if(i==choice)accountHighlight(35,y-8,324,29);ta_vs_lan_text(screen,46,y,ta_vs_character_name(i),i==choice?uiGold:uiText,2);}ta_vs_preview_draw(&previewAtlas,choice,screen,374,211);accountFooter("D-PAD MOVE  A CHOOSE  B CANCEL",NULL);}
 }
 static bool accountSpeedMenu(unsigned*value){
  unsigned choice=*value-1;TaMenuPad pad;menuBegin(&pad);

@@ -345,6 +345,7 @@ static void releaseGame(void){ta_vs_local_bind(NULL);TA_Video_SetLanOverlay(NULL
 #if defined(TA_VS_PERSIST_PROFILES) && TA_VS_PERSIST_PROFILES
 #if defined(TA_VS_TITLE_SAVES) && TA_VS_TITLE_SAVES
 #if defined(TA_DINO_BRAND) && TA_DINO_BRAND
+static int beginLobby(const uint8_t*rom,unsigned bytes,unsigned role,bool online);
 #include "ta_n22_accounts.h"
 #else
 #include "ta_n21_accounts.h"
@@ -416,7 +417,7 @@ static int browsePublic(const uint8_t*rom,unsigned bytes,uint32_t*localIp){
  previous=1u<<9;
 #endif
 #if defined(TA_VS_ACCOUNTS) && TA_VS_ACCOUNTS
- return accountBrowser(localIp,previous);
+ return accountBrowser(localIp,previous,rom,bytes);
 #else
  unsigned selected=0;
  for(;;){uint16_t pads[2];TA_Input_Poll(pads);uint16_t pressed=pads[0]&~previous;previous=pads[0];if(pressed&(1u<<8)){leavePublic();ta_vs_udp_close(&transport);return 1;}

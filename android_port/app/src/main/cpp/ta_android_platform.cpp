@@ -57,6 +57,23 @@ extern "C" JNIEXPORT jint JNICALL Java_org_dinoblockstacker_app_GameActivity_nat
  void*memory=env->GetDirectBufferAddress(buffer);if(!memory||env->GetDirectBufferCapacity(buffer)<512*480*4)return 0;std::lock_guard<std::mutex> lock(frameMutex);if(lastCopied==frameRevision)return 0;
  uint32_t*out=(uint32_t*)memory;for(unsigned i=0;i<512*frameHeight;i++){uint32_t c=displayFrame[i];out[i]=(c&0xff00u)|((c>>16)&255u)|((c&255u)<<16)|0xff000000u;}lastCopied=frameRevision;return (jint)frameHeight;
 }
+extern "C" int ta_android_chat_input(char*out,unsigned capacity){
+ if(!out||capacity<2||!gameEnv||!gameActivity||stopped)return 0;
+ JNIEnv*env=gameEnv;jclass cls=env->GetObjectClass(gameActivity);
+ jmethodID method=env->GetMethodID(cls,"promptChatText","()Ljava/lang/String;");
+ env->DeleteLocalRef(cls);
+ if(!method){if(env->ExceptionCheck())env->ExceptionClear();return 0;}
+ jstring answer=(jstring)env->CallObjectMethod(gameActivity,method);
+ if(env->ExceptionCheck()){env->ExceptionClear();return 0;}
+ if(!answer)return 0;
+ const char*data=env->GetStringUTFChars(answer,NULL);unsigned count=0;
+ if(data){
+  while(data[count]&&count<capacity-1){unsigned char ch=(unsigned char)data[count];if(ch<32||ch>126){count=0;break;}count++;}
+  if(count&&data[count]==0){memcpy(out,data,count);out[count]=0;}else count=0;
+  env->ReleaseStringUTFChars(answer,data);
+ }
+ env->DeleteLocalRef(answer);return count?1:0;
+}
 static std::string getString(JNIEnv*env,jstring s){const char*p=env->GetStringUTFChars(s,NULL);std::string r=p?p:"";if(p)env->ReleaseStringUTFChars(s,p);return r;}
 extern "C" JNIEXPORT jstring JNICALL Java_org_dinoblockstacker_app_GameActivity_nativeRun(JNIEnv*env,jobject activity,jstring romName,jstring directory){
  bool expected=false;if(!sessionRunning.compare_exchange_strong(expected,true))return env->NewStringUTF("A game is already running.");buttons[0]=buttons[1]=0;opponent=NULL;nextFrame=Clock::now();

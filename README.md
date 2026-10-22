@@ -10,6 +10,10 @@ The application does **not** include the original game ROM, graphics, characters
 - Android application (`.apk`) for compatible 64-bit ARM and x86 devices
 - Offline play and LAN multiplayer
 - Public online play using the project's hosted service
+- Online accounts, in-game and online population counters
+- Online world chat with account authentication and anti-abuse moderation
+- Translucent selected-menu highlights and improved results-menu input protection
+- Xbox world-chat shortcuts: START send, X delete, Y space, L/R jump to SPACE/SEND
 - Gamepad support on both platforms and on-screen controls on Android
 - Customizable Android touchscreen buttons with per-button position and size; Always Show, Auto-hide, and Off modes
 - ROM import and compatibility verification before gameplay
@@ -20,11 +24,23 @@ Prebuilt releases are available from the repository's **Releases** page:
 
 | Platform | Release file |
 | --- | --- |
-| Original Xbox ZIP | `DinoBlockStacker-v1.0.1-Xbox.zip` |
-| Android | `DinoBlockStacker-v1.0.1.apk` |
-| Source archive | GitHub release tag: Source code (zip) |
+| Original Xbox ZIP | `DinoBlockStacker-v1.0.2-Xbox.zip` |
+| Android | `DinoBlockStacker-v1.0.2.apk` |
+| Original Xbox executable | `default.xbe` |
+| Source archive | GitHub source archives |
 
 **No game ROM is included with any download.** A compatible, unheadered 1 MiB SNES ROM is required. ROM compatibility is checked against the expected SHA-256 value. Each user is responsible for obtaining and using game files lawfully.
+
+## Online menu
+
+The VERSUS menu contains **LAN JOIN**, **LAN HOST**, **ONLINE**, and **OFFLINE PLAY**.
+The ONLINE menu contains **PUBLIC ROOMS**, **PROFILE**, **WORLD CHAT**, and **LEADERBOARDS**.
+PUBLIC ROOMS provides browse and host actions. Press B to return through each menu.
+Counts refer to registered accounts, authenticated players in an active online round, and unique authenticated accounts currently connected to the online service.
+World chat accepts up to 32 ASCII characters per message; profanity is allowed, but racist slurs (including common obfuscations and compounds) are rejected by the server.
+Chat messages and moderation decisions are handled by the private hosted service, not by other game clients.
+
+On Xbox, START sends a world-chat message directly; X deletes, Y inserts a space, and L/R focus the SPACE/SEND actions. Results menu choices are blocked for approximately one second and until A/B buttons have been released.
 
 ## Installation
 
@@ -89,7 +105,7 @@ From the repository root:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\BUILD_DINO_ANDROID.ps1
 ```
 
-Output: `out\DinoBlockStackerAndroid\DinoBlockStacker-1.0.1.apk`
+Output: `out\DinoBlockStackerAndroid\DinoBlockStacker-1.0.0.apk`
 
 The script accepts `-SdkRoot`, `-GradleRoot`, and `-JdkRoot` overrides. The default Python interpreter is `C:\Python314\python.exe`, with `python` on `PATH` used as a fallback.
 

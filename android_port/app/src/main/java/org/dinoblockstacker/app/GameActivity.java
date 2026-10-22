@@ -27,6 +27,7 @@ public final class GameActivity extends Activity implements InputManager.InputDe
     static native void nativeRefresh();
     private Thread gameThread;private GLSurfaceView surface;private TouchPad touch;private int touchMode;
     private volatile AudioTrack audio;private WifiManager.MulticastLock multicast;private InputManager input;
+    private volatile java.util.concurrent.CountDownLatch pendingChat;
     private final Map<Integer,Pad> pads=new LinkedHashMap<>();private int touchMask;
     private static final class Pad {int slot,keys,axes;final Set<Integer> held=new HashSet<>();Pad(int s){slot=s;}}
     @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);immersive();
@@ -42,7 +43,31 @@ public final class GameActivity extends Activity implements InputManager.InputDe
     @SuppressWarnings("unused") private void writeAudio(short[] samples){AudioTrack a=audio;if(a!=null)try{a.write(samples,0,samples.length,AudioTrack.WRITE_NON_BLOCKING);}catch(RuntimeException ignored){}}
     @Override protected void onResume(){super.onResume();if(surface!=null)surface.onResume();nativePause(false);AudioTrack a=audio;if(a!=null)try{a.play();}catch(RuntimeException ignored){}}
     @Override protected void onPause(){nativePause(true);releaseInputs();AudioTrack a=audio;if(a!=null)try{a.pause();a.flush();}catch(RuntimeException ignored){}if(surface!=null)surface.onPause();super.onPause();}
-    @Override protected void onDestroy(){nativeStop();input.unregisterInputDeviceListener(this);if(gameThread!=null)try{gameThread.join(1500);}catch(InterruptedException e){Thread.currentThread().interrupt();}AudioTrack a=audio;audio=null;if(a!=null)a.release();if(multicast!=null&&multicast.isHeld())multicast.release();super.onDestroy();}
+    @Override protected void onDestroy(){java.util.concurrent.CountDownLatch latch=pendingChat;if(latch!=null)latch.countDown();nativeStop();input.unregisterInputDeviceListener(this);if(gameThread!=null)try{gameThread.join(1500);}catch(InterruptedException e){Thread.currentThread().interrupt();}AudioTrack a=audio;audio=null;if(a!=null)a.release();if(multicast!=null&&multicast.isHeld())multicast.release();super.onDestroy();}
+    @SuppressWarnings("unused") private String promptChatText(){
+        final java.util.concurrent.CountDownLatch latch=new java.util.concurrent.CountDownLatch(1);
+        final java.util.concurrent.atomic.AtomicReference<String> result=new java.util.concurrent.atomic.AtomicReference<>(null);
+        pendingChat=latch;
+        runOnUiThread(()->{
+            if(isFinishing()||isDestroyed()){latch.countDown();return;}
+            EditText inputText=new EditText(this);
+            inputText.setSingleLine(true);inputText.setHint("Message (32 characters)");
+            inputText.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(32)});
+            inputText.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+            android.widget.FrameLayout wrap=new android.widget.FrameLayout(this);
+            int margin=(int)(24*getResources().getDisplayMetrics().density);
+            wrap.setPadding(margin,0,margin,0);wrap.addView(inputText);
+            AlertDialog dialog=new AlertDialog.Builder(this).setTitle("World chat")
+                .setView(wrap).setPositiveButton("Send",(d,w)->result.set(inputText.getText().toString()))
+                .setNegativeButton("Cancel",(d,w)->{}).create();
+            dialog.setOnDismissListener(d->latch.countDown());
+            dialog.setOnCancelListener(d->latch.countDown());dialog.show();
+            inputText.requestFocus();dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+        });
+        try{latch.await();}catch(InterruptedException e){Thread.currentThread().interrupt();}
+        pendingChat=null;
+        return result.get();
+    }
     @Override public void onBackPressed(){new AlertDialog.Builder(this).setTitle("Leave Dino Block Stacker?").setMessage("Leaving disconnects your current online or LAN match.").setPositiveButton("Leave",(d,w)->finish()).setNegativeButton("Stay",null).show();}
     private static boolean controller(InputDevice d){return d!=null&&((d.getSources()&InputDevice.SOURCE_GAMEPAD)==InputDevice.SOURCE_GAMEPAD||(d.getSources()&InputDevice.SOURCE_JOYSTICK)==InputDevice.SOURCE_JOYSTICK);}
     private Pad pad(int id){Pad p=pads.get(id);if(p!=null)return p;boolean[] used=new boolean[2];for(Pad q:pads.values())used[q.slot]=true;int slot=!used[0]?0:!used[1]?1:-1;if(slot<0)return null;p=new Pad(slot);pads.put(id,p);return p;}
