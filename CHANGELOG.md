@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.5
+
+Restored full Xbox menu framing so population counters clear the title on console and xemu.
+
 ## 1.0.4
 
 Larger population counters centered above menu titles.

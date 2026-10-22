@@ -165,9 +165,10 @@ static void draw(LPDIRECT3DTEXTURE8 target, bool isLinear, bool active, int text
   float dh=(float)height,dw=dh*(4.0f/3.0f);if(dw>(float)width)dw=(float)width;
   float x0=((float)width-dw)*0.5f,x1=x0+dw;
   float u0=0,u1=isLinear?(float)textureW:1.0f;
-  float v0=active?0.0f:(isLinear?16.0f:16.0f/512.0f);
+  /* Menus use all 480 rows: cropping the top margin overlaps the population header. */
+  float v0=0.0f;
   float v1=active?(isLinear?224.0f:224.0f/256.0f):
-                  (isLinear?464.0f:464.0f/512.0f);
+                  (isLinear?480.0f:480.0f/512.0f);
   float y0=0,y1=(float)height;
 #if defined(TA_VS_NATIVE_VIEW) && TA_VS_NATIVE_VIEW
   if(lanImage||partyVisual){TaVsView v=ta_vs_view((unsigned)width,(unsigned)height,displayWidescreen);x0=v.left;x1=v.right;y0=v.top;y1=v.bottom;}
