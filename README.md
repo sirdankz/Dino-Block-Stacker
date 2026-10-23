@@ -1,6 +1,7 @@
 # Dino Block Stacker
 
-**Dino Block Stacker** is an unofficial, ROM-free Original Xbox, Xbox 360, and Android port compatible with the SNES game *Tetris Attack*. It supports local play, LAN multiplayer, and public online features through the project's hosted service.
+**Dino Block Stacker** is an unofficial, ROM-free(NO ROM INCLUDED MUST PROVIDE YOUR OWN LEGALLY OBTAINED ROM)
+Original Xbox, Xbox 360, & Android port compatible with the SNES game *Tetris Attack*. It supports local play, LAN multiplayer, and public online features through the project's hosted service.
 
 The application does **not** include the original game ROM, graphics, characters, music, or sound effects. Game content is loaded locally from a separately supplied, compatible ROM. This project is independent of and is not affiliated with or endorsed by Nintendo, Microsoft, or the original rights holders.
 
