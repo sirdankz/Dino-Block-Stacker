@@ -7,9 +7,7 @@ The application does **not** include the original game ROM, graphics, characters
 ## Features
 
 - Offline play and LAN multiplayer
-- Pixel-art menu frames with a scrolling tiled background
-- Same-room rematches, departure statuses, host speed changes and guest speed requests
-- Visible active/full rooms and recovery after an opponent leaves
+- Pixel-art(Made by Galactusx) menu frames with a scrolling tiled background
 - Online accounts, in-game and online population counters
 - Lobby and world chat in waiting rooms, with a dedicated chat shortcut in Browse Rooms
 - Direct tapping and swipe navigation for Android menus
