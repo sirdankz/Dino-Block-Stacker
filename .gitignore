@@ -81,3 +81,6 @@ Thumbs.db
 **/dino_lobby_chat.py
 **/UPDATE_SERVER.ps1
 **/install_v*.py
+
+# Generated PowerPC project and adapted shared source
+xbox360_port/generated/

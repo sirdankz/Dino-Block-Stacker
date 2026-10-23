@@ -19,6 +19,10 @@ Project: https://github.com/Team-Resurgent/RXDK-Libs
 
 **Android SDK / NDK** — The Android application is built with the Android build toolchain and links against Android platform libraries. The Android SDK and NDK are not included in this repository.
 
+**Xbox 360 XDK** — External PowerPC compiler, graphics, audio, controller and platform libraries for the Xbox 360 target. The SDK is installed separately and is not included in this source archive.
+
+**XexTool** — External homebrew executable conversion tool. The Xbox 360 build downloads a checksum-pinned copy from the upstream BadUpdate tools release into an ignored local cache. Neither XexTool nor the upstream tools archive is redistributed in this source package.
+
 ## Game content
 
 No original *Tetris Attack* ROM, ROM-derived startup cache, Nintendo artwork, music, sound effects, or game manual is distributed. Compatible game content must be provided separately and is loaded locally by the application. Neither this project nor its licenses grants permission to obtain, reproduce, or redistribute third-party game content.

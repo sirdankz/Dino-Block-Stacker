@@ -2,6 +2,10 @@
 
 ## 1.1.6
 
+- Add the Xbox 360 port with shared console menus, artwork, offline play, LAN, online modes, chat, profiles, leaderboards, and rematches.
+- Support persistent Xbox 360 saves on writable game folders and Xenia saved-game containers.
+- Preserve native network-order IPv4 bytes for Xbox 360 public-room and party connections.
+
 - Use a compact OPEN CHAT legend with a black Back/Select icon; separate status text from button prompts and remove repeated option-card prompts.
 
 - Open World Chat from Browse Rooms with BACK and choose Lobby Chat or World Chat in waiting lobbies.
