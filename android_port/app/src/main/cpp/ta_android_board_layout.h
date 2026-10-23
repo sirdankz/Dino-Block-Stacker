@@ -94,8 +94,11 @@ static void present(const uint32_t*p,unsigned height){
  else if(opponent&&height==224)height=duelCompose(p);
  else activeBoardProfile=0;
  static uint32_t hud[512*TA_POPULATION_MAX_HEIGHT];unsigned menu=height==480;
- unsigned hw=ta_population_image(hud,512,&population,menu),hh=ta_population_height(menu);unsigned hx=menu?(512-hw)/2:512-hw-5,hy=menu?6:1;
- for(unsigned y=0;y<hh;y++)memcpy(displayFrame+(hy+y)*512+hx,hud+y*512,hw*4);
+ unsigned hw=ta_population_image(hud,512,&population,menu),hh=ta_population_height(menu);unsigned hx=menu?(512-hw)/2:512-hw-5,hy=menu?TA_POPULATION_MENU_TOP:1;
+ for(unsigned y=0;y<hh;y++){
+  uint32_t*dest=displayFrame+(hy+y)*512+hx;const uint32_t*source=hud+y*512;
+  for(unsigned x=0;x<hw;x++)if(source[x]>>24)dest[x]=source[x]&0x00ffffffu;
+ }
  frameHeight=height;frameRevision++;}
  auto now=Clock::now();if(nextFrame<now-std::chrono::milliseconds(100))nextFrame=now;nextFrame+=std::chrono::nanoseconds(1000000000LL/60);std::this_thread::sleep_until(nextFrame);
 }

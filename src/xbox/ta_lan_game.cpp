@@ -317,7 +317,8 @@ static int pump(bool display){N7_TICK(netStart);int r=pumpWork(display);
 #endif
 static void caption(const char*title,const char*detail,bool preMatch=false){
 #if defined(TA_VS_COMPACT_UI) && TA_VS_COMPACT_UI
- ta_n17_backdrop();ta_vs_lan_text(screen,42,51,TA_MENU_TITLE,0x007dd9e8,3);ta_vs_lan_text(screen,42,126,title,0x00f2f4f8,4);ta_vs_lan_text(screen,42,208,detail,0x00c1c9d5,2);ta_n17_panel(30,395,452,47);ta_vs_lan_text(screen,44,412,preMatch?"B CANCEL":"A CONTINUE   B BACK",0x0096e3b2,2);TA_Video_Submit((const uint8_t*)screen);return;
+ TA_Menu_Begin(title);if(!preMatch)menuTouchFooter(36,TA_MENU_FOOTER_PRIMARY,"A CONTINUE   B BACK",12);
+ ta_n17_backdrop();ta_menu_text(screen,36,34,TA_MENU_TITLE,0x007dd9e8,3);ta_vs_lan_text_box(screen,36,65,440,24,title,0x00f2f4f8,4);ta_vs_lan_text_box(screen,42,170,428,180,detail,0x00c1c9d5,2);ta_menu_text(screen,36,TA_MENU_FOOTER_PRIMARY,preMatch?"B CANCEL":"A CONTINUE   B BACK",0x0096e3b2,2);TA_Video_Submit((const uint8_t*)screen);return;
 #endif
  for(unsigned i=0;i<512*480;i++)screen[i]=0x000b1524;
  ta_vs_lan_text(screen,28,48,"TETRIS ATTACK VERSUS " TA_LAN_BUILD,0x006fc9ff,4);

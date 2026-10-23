@@ -3,7 +3,7 @@
 #include "ta_vs_account.h"
 #include <string.h>
 #define TA_LADDER_VISIBLE 6u
-#define TA_LADDER_ROW_HEIGHT 36u
+#define TA_LADDER_ROW_HEIGHT 34u
 #define TA_LADDER_PAGE 8u
 typedef struct{unsigned valid,offset,count;TaAccountProfile rows[8];}TaLadderPage;
 typedef struct{unsigned first,total,known;TaLadderPage pages[3];}TaLadderScroll;

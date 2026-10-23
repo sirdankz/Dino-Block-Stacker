@@ -3,7 +3,7 @@ package org.dinoblockstacker.app;
 /** Leaderboard-only gestures in the native 512x480 menu coordinate system. */
 final class LeaderboardGesture {
     // Matches TA_LADDER_ROW_HEIGHT in the native leaderboard layout.
-    private static final float ROW_HEIGHT=36f;
+    private static final float ROW_HEIGHT=34f;
     private int session, pointer=-1, button;
     private float lastY, remainder, downX, downY;
     boolean active(){return pointer>=0;}

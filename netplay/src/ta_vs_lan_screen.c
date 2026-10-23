@@ -76,3 +76,55 @@ void ta_vs_lan_render(uint32_t*p,unsigned state,uint32_t localIp,uint32_t peerIp
 }
 
 void ta_vs_lan_text(uint32_t*p,int x,int y,const char*s,uint32_t c,int scale){text(p,x,y,s,c,scale);}
+
+/* Word wrapping and spacing are bounded before any glyph pixels are written. */
+#if defined(TA_VS_COMPACT_UI) && TA_VS_COMPACT_UI
+static unsigned ta_box_lines(const char*s,int width,int glyph,int advance){
+ unsigned lines=1;int x=0;const char*begin=s;
+ for(;*s;s++){
+  if(*s=='\n'){x=0;lines++;continue;}
+  if(*s!=' '&&(s==begin||s[-1]==' '||s[-1]=='\n')){
+   unsigned word=0;while(s[word]&&s[word]!=' '&&s[word]!='\n')word++;
+   if(x&&x+(int)(word-1)*advance+glyph>width){x=0;lines++;}
+  }
+  if(!x&&*s==' ')continue;
+  if(x+glyph>width){x=0;lines++;}
+  x+=advance;
+ }
+ return lines;
+}
+#endif
+void ta_vs_lan_text_box(uint32_t*p,int x,int y,int width,int height,const char*s,uint32_t color,int requested){
+ if(!p||!s||requested<1||width<=0||height<=0||x<0||y<0||x>=512||y>=480)return;
+ if(width>512-x)width=512-x;if(height>480-y)height=480-y;
+#if defined(TA_VS_COMPACT_UI) && TA_VS_COMPACT_UI
+ int scale=requested>=4?3:2,advance=6*scale;
+ for(;;){
+  int normal=6*scale,tight=5*scale+1;unsigned lines=ta_box_lines(s,width,5*scale,normal);
+  if((int)(lines*8u*(unsigned)scale)-(int)scale<=height){advance=normal;break;}
+  lines=ta_box_lines(s,width,5*scale,tight);
+  if((int)(lines*8u*(unsigned)scale)-(int)scale<=height){advance=tight;break;}
+  if(scale==1){advance=normal;break;}scale--;
+ }
+ int cx=0,cy=0;const char*begin=s;
+ for(;*s;s++){
+  if(*s=='\n'){cx=0;cy+=8*scale;continue;}
+  if(*s!=' '&&(s==begin||s[-1]==' '||s[-1]=='\n')){
+   unsigned word=0;while(s[word]&&s[word]!=' '&&s[word]!='\n')word++;
+   if(cx&&cx+(int)(word-1)*advance+5*scale>width){cx=0;cy+=8*scale;}
+  }
+  if(!cx&&*s==' ')continue;
+  if(cx+5*scale>width){cx=0;cy+=8*scale;}
+  if(cy+7*scale>height)break;
+  const uint8_t*g=font_rows(*s);
+  for(int row=0;row<7;row++)for(int col=0;col<5;col++)if(g[row]&(1u<<(4-col)))
+   for(int dy=0;dy<scale;dy++)for(int dx=0;dx<scale;dx++){
+    int xx=cx+col*scale+dx,yy=cy+row*scale+dy;
+    if(xx<width&&yy<height)p[(y+yy)*512+x+xx]=color;
+   }
+  cx+=advance;
+ }
+#else
+ (void)width;(void)height;text(p,x,y,s,color,requested);
+#endif
+}

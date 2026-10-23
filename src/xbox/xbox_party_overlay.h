@@ -15,7 +15,7 @@ extern "C" void TA_Video_SetPopulation(unsigned a,unsigned g,unsigned o,unsigned
 
 static unsigned long partyStats[4]; /* board uploads, names uploads, busy skips, copied bytes */
 static unsigned partyPeers(void){unsigned n=0;if(partyVisual)for(unsigned s=0;s<4;s++)if(s!=partyVisual->self&&(partyVisual->members&(1u<<s)))n++;return n;}
-static bool partyCreate(PartyTexture*t,unsigned width,unsigned rows=256){for(unsigned k=0;k<3;k++)if(!t->tex[k]&&FAILED(dev->CreateTexture(width,rows,1,0,D3DFMT_LIN_X8R8G8B8,D3DPOOL_DEFAULT,&t->tex[k])))return false;return true;}
+static bool partyCreate(PartyTexture*t,unsigned width,unsigned rows=256,D3DFORMAT format=D3DFMT_LIN_X8R8G8B8){for(unsigned k=0;k<3;k++)if(!t->tex[k]&&FAILED(dev->CreateTexture(width,rows,1,0,format,D3DPOOL_DEFAULT,&t->tex[k])))return false;return true;}
 static void partyInvalidate(PartyTexture*t){t->source=NULL;t->revision=~0u;t->lastUpload=0;t->have=false;}
 extern "C" bool TA_Video_SetPartyVisual(const TaPartyVisual*p){
  if(!p){partyVisual=NULL;partyScenerySource=NULL;partyInvalidate(&partyScenery);for(unsigned s=0;s<4;s++)partyInvalidate(partyBoard+s);partyInvalidate(&partyNames);return true;}
@@ -57,15 +57,29 @@ static void partyBackdrop(TaPartyLayout layout){
  V q[4]={{b.left-.5f,b.top-.5f,0,1,u0,v0},{b.right-.5f,b.top-.5f,0,1,u1,v0},{b.left-.5f,b.bottom-.5f,0,1,u0,v1},{b.right-.5f,b.bottom-.5f,0,1,u1,v1}};dev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP,2,q,sizeof(V));}
 }
 static void populationOverlay(bool menu){
- if(!partyCreate(&populationTexture,512,32))return;
+ if(!partyCreate(&populationTexture,512,32,D3DFMT_LIN_A8R8G8B8))return;
  if(populationMenu!=(unsigned)menu||!populationTexture.have||populationTexture.revision!=population.revision){populationMenu=menu;populationWidth=ta_population_image(populationPixels,512,&population,menu);populationTexture.revision=~0u;}
  dev->SetPixelShader(0);for(unsigned stage=1;stage<4;stage++){dev->SetTexture(stage,NULL);dev->SetTextureStageState(stage,D3DTSS_COLOROP,D3DTOP_DISABLE);}
  dev->SetTextureStageState(0,D3DTSS_COLOROP,D3DTOP_SELECTARG1);dev->SetTextureStageState(0,D3DTSS_COLORARG1,D3DTA_TEXTURE);dev->SetTextureStageState(0,D3DTSS_ALPHAOP,D3DTOP_DISABLE);dev->SetVertexShader(FVF);
  unsigned hudHeight=ta_population_height(menu);
  partyUpload(&populationTexture,populationPixels,512,0,populationWidth,population.revision,GetTickCount(),0,1,hudHeight);
  float pa=(displayWidescreen?16.0f/9.0f:4.0f/3.0f)*(float)height/(float)width,scale=(float)height/480.0f;
- TaPartyRect box;box.left=menu?((float)width-populationWidth*scale/pa)*.5f:(float)width*.98f-populationWidth*scale/pa;box.right=box.left+populationWidth*scale/pa;box.top=menu?6*scale:2*scale;box.bottom=box.top+hudHeight*scale;
+ /* Menu counters follow the same 512x480-to-4:3 transform as the frame. */
+ float menuWidth=(float)height*(4.0f/3.0f);if(menuWidth>(float)width)menuWidth=(float)width;
+ float hudScaleX=menu?menuWidth/512.0f:scale/pa;
+ TaPartyRect box;box.left=menu?((float)width-populationWidth*hudScaleX)*.5f:(float)width*.98f-populationWidth*hudScaleX;box.right=box.left+populationWidth*hudScaleX;box.top=menu?TA_POPULATION_MENU_TOP*scale:2*scale;box.bottom=box.top+hudHeight*scale;
+ /* Blend the glyph mask without covering the frame or moving background. */
+ DWORD oldBlend=FALSE,oldSource=D3DBLEND_ONE,oldDest=D3DBLEND_ZERO;
+ dev->GetRenderState(D3DRS_ALPHABLENDENABLE,&oldBlend);
+ dev->GetRenderState(D3DRS_SRCBLEND,&oldSource);dev->GetRenderState(D3DRS_DESTBLEND,&oldDest);
+ dev->SetTextureStageState(0,D3DTSS_ALPHAOP,D3DTOP_SELECTARG1);
+ dev->SetTextureStageState(0,D3DTSS_ALPHAARG1,D3DTA_TEXTURE);
+ dev->SetRenderState(D3DRS_SRCBLEND,D3DBLEND_SRCALPHA);dev->SetRenderState(D3DRS_DESTBLEND,D3DBLEND_INVSRCALPHA);
+ dev->SetRenderState(D3DRS_ALPHABLENDENABLE,TRUE);
  partyQuad(&populationTexture,box,populationWidth,hudHeight);
+ dev->SetRenderState(D3DRS_ALPHABLENDENABLE,oldBlend);
+ dev->SetRenderState(D3DRS_SRCBLEND,oldSource);dev->SetRenderState(D3DRS_DESTBLEND,oldDest);
+ dev->SetTextureStageState(0,D3DTSS_ALPHAOP,D3DTOP_DISABLE);
 }
 static void partyOverlay(void){
  if(!partyVisual)return;unsigned peers=partyPeers();TaPartyLayout layout=ta_party_layout(width,height,displayWidescreen,peers);uint32_t now=GetTickCount();

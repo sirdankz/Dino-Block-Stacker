@@ -18,3 +18,9 @@ void ta_vs_preview_draw(const TaVsPreview*p,unsigned c,uint32_t*s,unsigned x,uns
  for(unsigned k=0;k<100;k++){s[(y-2)*512+x-2+k]=s[(y+97)*512+x-2+k]=0x006fc9ff;s[(y-2+k)*512+x-2]=s[(y-2+k)*512+x+97]=0x006fc9ff;}
  for(unsigned yy=0;yy<96;yy++)for(unsigned xx=0;xx<96;xx++)s[(y+yy)*512+x+xx]=p->pixels[c][(yy/3)*32+xx/3];
 }
+
+void ta_vs_preview_draw_size(const TaVsPreview*p,unsigned c,uint32_t*s,unsigned x,unsigned y,unsigned size){
+ if(!p||!p->ready||c>=13||!s||size<1||size>96||x<2||y<2||x+size+2>512||y+size+2>480)return;
+ for(unsigned k=0;k<size+4;k++){s[(y-2)*512+x-2+k]=s[(y+size+1)*512+x-2+k]=0x006fc9ff;s[(y-2+k)*512+x-2]=s[(y-2+k)*512+x+size+1]=0x006fc9ff;}
+ for(unsigned yy=0;yy<size;yy++)for(unsigned xx=0;xx<size;xx++)s[(y+yy)*512+x+xx]=p->pixels[c][(yy*32/size)*32+xx*32/size];
+}

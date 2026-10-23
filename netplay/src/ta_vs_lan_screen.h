@@ -7,6 +7,7 @@ extern "C" {
 /* Screen-only frontend. Never owns or modifies SNES state. */
 enum {TA_LAN_SELECT,TA_LAN_ADDRESS,TA_LAN_HOST_WAIT,TA_LAN_JOIN_WAIT,TA_LAN_HANDSHAKE,TA_LAN_CONNECTED,TA_LAN_LOST,TA_LAN_ERROR};
 void ta_vs_lan_text(uint32_t*,int,int,const char*,uint32_t,int);
+void ta_vs_lan_text_box(uint32_t*,int,int,int,int,const char*,uint32_t,int);
 void ta_vs_lan_render(uint32_t*pixels,unsigned state,uint32_t localIp,uint32_t peerIp,unsigned remoteButtons,int error);
 #ifdef __cplusplus
 }

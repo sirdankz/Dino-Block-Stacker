@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.1.6
+
+- Use a compact OPEN CHAT legend with a black Back/Select icon; separate status text from button prompts and remove repeated option-card prompts.
+
+- Open World Chat from Browse Rooms with BACK and choose Lobby Chat or World Chat in waiting lobbies.
+- Keep lobby connections responsive during chat and Android keyboard input; return when a match starts or room membership changes.
+- Return lone remaining players to a public lobby as host after preserving match results.
+- Add Android menu taps and swipe navigation, including rooms, profiles, keyboards, options, lobby controls, and rematches.
+- Guard touch actions across menu transitions, result input delays, and refreshed room lists.
+
+## 1.1.5
+
+- Inset menu text and highlights from border outlines, dots, and bevels.
+- Fit footer instructions and action highlights inside the footer panel.
+- Reflow six leaderboard rows, rank icons, columns, and scrollbar within the content panel.
+- Bound long labels and status messages; fit match-option portraits within their panels.
+
+## 1.1.4
+
+- Use one continuous translucent menu surface without stacked content or footer shades.
+- Preserve border artwork, dotted trim, the moving background, and selection highlights.
+- Reduce menu counter lettering and inset it away from the dotted top-tab trim.
+
+## 1.1.3
+
+- Remove the counter background panel on Xbox and Android, preserving the underlying artwork and existing text placement.
+
+## 1.1.2
+
+- Inset menu population counters within the top tab without covering its border.
+- Match Xbox counter placement and scaling to the menu frame.
+- Retain the counter font size and compact labels.
+
+## 1.1.1
+
+- Add supplied pixel-art menu frames and panels on Xbox and Android.
+- Scroll the tileable menu background diagonally while frames remain fixed.
+- Preserve artwork transparency and cache composition between animation steps.
+- Fit population counters inside the new top tab without reducing font size.
+
 ## 1.1.0
 
 - Expand Android gameplay touch targets beyond the visible button edges.

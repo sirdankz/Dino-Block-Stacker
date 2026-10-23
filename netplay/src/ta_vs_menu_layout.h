@@ -1,0 +1,34 @@
+#ifndef TA_VS_MENU_LAYOUT_H
+#define TA_VS_MENU_LAYOUT_H
+/* Inset from the supplied 512x480 skin's outlines, dots and bevels. */
+#define TA_MENU_LEFT 36
+#define TA_MENU_RIGHT 476
+#define TA_MENU_HEADER_TOP 34
+#define TA_MENU_HEADER_BOTTOM 134
+#define TA_MENU_BODY_TEXT_TOP 158
+#define TA_MENU_BODY_TEXT_BOTTOM 382
+#define TA_MENU_BODY_HIGHLIGHT_TOP 154
+#define TA_MENU_BODY_HIGHLIGHT_BOTTOM 384
+#define TA_MENU_FOOTER_TEXT_TOP 406
+#define TA_MENU_FOOTER_TEXT_BOTTOM 448
+#define TA_MENU_FOOTER_HIGHLIGHT_TOP 404
+#define TA_MENU_FOOTER_HIGHLIGHT_BOTTOM 448
+#define TA_MENU_FOOTER_PRIMARY 410
+#define TA_MENU_FOOTER_SECONDARY 432
+#define TA_MENU_LADDER_TOP 178u
+#define TA_MENU_LADDER_RATING_X 404
+#define TA_MENU_LADDER_SCROLL_X 478
+
+typedef struct{int left,top,right,bottom;}TaMenuRect;
+static inline TaMenuRect ta_menu_text_region(int y){
+ TaMenuRect b={TA_MENU_LEFT,TA_MENU_HEADER_TOP,TA_MENU_RIGHT,TA_MENU_HEADER_BOTTOM};
+ if(y>=395){b.top=TA_MENU_FOOTER_TEXT_TOP;b.bottom=TA_MENU_FOOTER_TEXT_BOTTOM;}
+ else if(y>=143){b.top=TA_MENU_BODY_TEXT_TOP;b.bottom=TA_MENU_BODY_TEXT_BOTTOM;}
+ return b;
+}
+static inline TaMenuRect ta_menu_highlight_region(int y){
+ TaMenuRect b={TA_MENU_LEFT,TA_MENU_BODY_HIGHLIGHT_TOP,TA_MENU_RIGHT,TA_MENU_BODY_HIGHLIGHT_BOTTOM};
+ if(y>=395){b.top=TA_MENU_FOOTER_HIGHLIGHT_TOP;b.bottom=TA_MENU_FOOTER_HIGHLIGHT_BOTTOM;}
+ return b;
+}
+#endif
