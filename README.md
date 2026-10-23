@@ -56,7 +56,7 @@ Expected layout:
 ```text
 DinoBlockStacker/
   default.xbe
-  game.sfc       # Supplied separately; not part of the release
+  game.sfc       # ; not part of the release(MUST PROVIDE YOUR OWN LEGALLY OBTAINED ROM)
 ```
 
 ### Xbox 360
@@ -65,6 +65,14 @@ DinoBlockStacker/
 2. Place the compatible, unheadered ROM beside `default.xex` and name it `game.sfc`.
 3. Launch `default.xex` on an RGH/JTAG system or through an active Bad Avatar homebrew loader. Xenia is also supported.
 
+
+Expected layout:
+
+```text
+DinoBlockStacker/
+  default.xex
+  game.sfc       # ; not part of the release(MUST PROVIDE YOUR OWN LEGALLY OBTAINED ROM)
+```
 Profiles, settings, bindings, and caches use `DinoBlockStacker360Data` beside the game when writable. On Xenia or read-only game mounts, they use the normal Xbox saved-game container under the configured content directory. No Xenia write-permission setting change is required.
 
 The Xbox 360 port shares the console menus and board layouts. RB cycles junk targets; the right stick selects a Focus target. Hold BACK+START during offline play to return to the menus.
