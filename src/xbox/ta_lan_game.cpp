@@ -332,7 +332,12 @@ static void caption(const char*title,const char*detail,bool preMatch=false){
  TA_Video_Submit((const uint8_t*)screen);
 }
 #if defined(TA_VS_LEAN_VIEW) && TA_VS_LEAN_VIEW
-static bool updateOpponent(void){return TA_Video_SetLanOverlay(pictureRx.pixels,pictureRx.updates);}
+static bool updateOpponent(void){
+#if defined(TA_ANDROID)
+ TA_Video_SetDuelMode(publicMode?1u:2u);
+#endif
+ return TA_Video_SetLanOverlay(pictureRx.pixels,pictureRx.updates);
+}
 #else
 static bool updateOverlay(const char*state,unsigned seconds){
  memset(overlay,0,sizeof overlay);

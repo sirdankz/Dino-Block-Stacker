@@ -12,7 +12,7 @@ The application does **not** include the original game ROM, graphics, characters
 - Online accounts, in-game and online population counters
 - Xbox world-chat shortcuts: START send, X delete, Y space, L/R jump to SPACE/SEND
 - Gamepad support on both platforms and on-screen controls on Android
-- Customizable Android touchscreen buttons with per-button position and size; Always Show, Auto-hide, and Off modes
+- Customizable Android touchscreen buttons with per-button position and size, forgiving touch targets, and Always Show, Auto-hide, and Off modes
 
 ## Downloads
 
@@ -20,8 +20,8 @@ Prebuilt releases are available from the repository's **Releases** page:
 
 | Platform | Release file |
 | --- | --- |
-| Original Xbox ZIP | `DinoBlockStacker-v1.0.8-Xbox-NoLog.zip` |
-| Android | `DinoBlockStacker-v1.0.8.apk` |
+| Original Xbox ZIP | `DinoBlockStacker-v1.1.0-Xbox-NoLog.zip` |
+| Android | `DinoBlockStacker-v1.1.0.apk` |
 | Original Xbox executable | `default.xbe` |
 | Source archive | GitHub source archives |
 
@@ -61,6 +61,8 @@ DinoBlockStacker/
 2. Open **Dino Block Stacker** and select **Import compatible game ROM**.
 3. Choose a compatible, unheadered 1 MiB SNES ROM using Android's system file picker.
 4. Select an available game mode. Touch controls and supported USB/Bluetooth gamepads can be used.
+
+Android 1v1 uses the original offline board layout by default. Board positions and sizes save separately by multiplayer mode and player count from **Customize board layouts**, or Android Back > **Board layout** during a match.
 
 The imported ROM is stored locally by the app. Public online features require network access and availability of the project's hosted service. 
 

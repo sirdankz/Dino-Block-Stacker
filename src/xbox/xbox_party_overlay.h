@@ -43,7 +43,7 @@ static void partyQuad(PartyTexture*t,TaPartyRect p,unsigned sourceWidth,unsigned
  dev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP,2,q,sizeof(V));
 }
 static void partyBackdrop(TaPartyLayout layout){
- if(partyScenerySource&&!partyScenery.have&&partyCreate(&partyScenery,256,128))partyUpload(&partyScenery,partyScenerySource,512,304,192,1,GetTickCount(),0,0,88,24);
+ if(partyScenerySource&&!partyScenery.have&&partyCreate(&partyScenery,256,128))partyUpload(&partyScenery,partyScenerySource,512,16,192,1,GetTickCount(),0,0,88,24);
  if(!partyScenery.have)return;
  /* Four pieces of one cover-scaled original scene surround the local board.
     Drawing after the local shader avoids restoring its multi-texture state. */

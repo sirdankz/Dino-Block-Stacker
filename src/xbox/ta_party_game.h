@@ -56,7 +56,7 @@ static int partyLoad(const uint8_t*rom,unsigned bytes){
 }
 static bool partyDisplayUpdate(unsigned&state,unsigned&target){
  unsigned next=ta_vs_party_next_target(&party);if(state!=party.revision||target!=next){ta_party_labels(overlay,&party);++partyViewRevision;state=party.revision;target=next;}
- partyDisplay.members=party.members;partyDisplay.self=party.self;partyDisplay.roster=overlay;partyDisplay.rosterRevision=partyViewRevision;
+ partyDisplay.members=party.members;partyDisplay.self=party.self;partyDisplay.mode=party.mode;partyDisplay.roster=overlay;partyDisplay.rosterRevision=partyViewRevision;
  for(unsigned s=0;s<4;s++){partyDisplay.pixels[s]=partyPictures[s].pixels;partyDisplay.revision[s]=partyPictures[s].updates;}
  return TA_Video_SetPartyVisual(&partyDisplay);
 }

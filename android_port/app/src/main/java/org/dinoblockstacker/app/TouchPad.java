@@ -164,6 +164,33 @@ public final class TouchPad extends View {
         return -1;
     }
 
+    /** Accept near misses without changing visible buttons or editor selection. */
+    private int gameplayControlAt(float x, float y) {
+        int direct = controlAt(x, y);
+        if (direct >= 0) return direct;
+        float density = getResources().getDisplayMetrics().density;
+        float nearest = Float.MAX_VALUE, nearestCenter = Float.MAX_VALUE;
+        int result = -1;
+        for (int i = controls.size() - 1; i >= 0; --i) {
+            RectF rect = controls.get(i).rect;
+            float padding = clamp(Math.min(rect.width(), rect.height()) * .2f,
+                    8f * density, 18f * density);
+            float dx = Math.max(0f, Math.max(rect.left - x, x - rect.right));
+            float dy = Math.max(0f, Math.max(rect.top - y, y - rect.bottom));
+            float distance = dx * dx + dy * dy;
+            if (distance > padding * padding) continue;
+            float centerX = x - rect.centerX(), centerY = y - rect.centerY();
+            float centerDistance = centerX * centerX + centerY * centerY;
+            // Expanded areas may overlap; each finger selects only the nearest button.
+            if (distance < nearest || (distance == nearest && centerDistance < nearestCenter)) {
+                result = i;
+                nearest = distance;
+                nearestCenter = centerDistance;
+            }
+        }
+        return result;
+    }
+
     @Override protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if(leaderboardMode&&!editing)return;
@@ -222,7 +249,7 @@ public final class TouchPad extends View {
         if (action != MotionEvent.ACTION_CANCEL && action != MotionEvent.ACTION_UP) {
             for (int i = 0; i < event.getPointerCount(); i++) {
                 if (i == skip) continue;
-                int index = controlAt(event.getX(i), event.getY(i));
+                int index = gameplayControlAt(event.getX(i), event.getY(i));
                 if (index >= 0) mask |= controls.get(index).bit;
             }
         }

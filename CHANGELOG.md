@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.0
+
+- Expand Android gameplay touch targets beyond the visible button edges.
+- Prefer direct taps and select the nearest button when expanded areas overlap.
+- Preserve multi-touch input, saved control layouts, and precise editor selection.
+
+## 1.0.9
+
+- Restore the original offline board arrangement for Android ranked and LAN 1v1 by default.
+- Add saved Android board positioning and resizing for each multiplayer mode and player count.
+- Add a pre-match layout editor and a live editor through Android Back → Board layout.
+- Use the local character background to fill party scenery on Xbox and Android.
+- Retain cached opponent updates while editing layout geometry.
+
 ## 1.0.8
 
 - Display active and full rooms with clear availability labels.

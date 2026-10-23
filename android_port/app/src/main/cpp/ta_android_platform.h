@@ -64,6 +64,7 @@ bool TA_Video_SetPartyOverlay(const uint32_t*,unsigned);
 bool TA_Video_SetPartyVisual(const TaPartyVisual*);
 void TA_Video_PartyStats(unsigned long out[4]);
 void TA_Video_SetPartyBackdrop(const uint32_t*);
+void TA_Video_SetDuelMode(unsigned mode);
 void TA_Video_SetPopulation(unsigned accounts,unsigned ingame,unsigned online,unsigned known);
 void TA_Input_Poll(uint16_t[2]);
 void TA_Background_Set(void (*tick)(void));

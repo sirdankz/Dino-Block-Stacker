@@ -15,7 +15,7 @@ typedef struct {
  const uint32_t *pixels[4];
  unsigned revision[4];
  const uint32_t *roster;
- unsigned rosterRevision,members,self;
+ unsigned rosterRevision,members,self,mode;
 } TaPartyVisual;
 
 /* Revisions may change for every received tile; display uploads have a separate
