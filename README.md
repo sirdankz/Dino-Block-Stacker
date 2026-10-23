@@ -176,12 +176,3 @@ The license applies only to material that its contributors are authorized to lic
 
 *Dino Block Stacker is an independent fan-made project and is not an official Nintendo or Microsoft product.*
 
-## Release history
-
-See [CHANGELOG.md](CHANGELOG.md) for release notes.
-
-## Client checks
-
-```powershell
-python netplay/tests/run_client_tests.py
-```
