@@ -13,8 +13,8 @@ static inline void ta_population_text(uint32_t*out,unsigned stride,unsigned widt
  }}
 }
 #define TA_POPULATION_MAX_HEIGHT 22u
-/* The artwork's tab interior spans source rows 12 through 25. */
-#define TA_POPULATION_MENU_TOP 12u
+/* Revised artwork: clear tab pixels span X78..433 and Y10..23. */
+#define TA_POPULATION_MENU_TOP 10u
 #define TA_POPULATION_MENU_HEIGHT 14u
 static inline unsigned ta_population_height(unsigned menu){return menu?TA_POPULATION_MENU_HEIGHT:11u;}
 /* Keep every label legible even when the registered-account count grows. */
@@ -24,10 +24,10 @@ static inline void ta_population_count(char out[12],unsigned n){
  else if(n>=10000u)snprintf(out,12,"%uK",n/1000u);
  else snprintf(out,12,"%u",n);
 }
-/* Smaller menu glyphs leave the dotted top-tab trim unobstructed. */
-#define TA_POPULATION_MENU_GLYPH_WIDTH 8u
-#define TA_POPULATION_MENU_GLYPH_HEIGHT 10u
-#define TA_POPULATION_MENU_ADVANCE 10u
+/* Original 2x glyph size fits entirely inside the revised dotted trim. */
+#define TA_POPULATION_MENU_GLYPH_WIDTH 10u
+#define TA_POPULATION_MENU_GLYPH_HEIGHT 14u
+#define TA_POPULATION_MENU_ADVANCE 12u
 static inline void ta_population_menu_text(uint32_t*out,unsigned stride,unsigned width,unsigned height,unsigned x,unsigned y,const char*text){
  for(unsigned k=0;text[k];k++){
   const uint8_t*g=ta_population_font(text[k]);
@@ -43,6 +43,7 @@ static inline unsigned ta_population_image(uint32_t*out,unsigned stride,const Ta
  if(menu){
   snprintf(text,sizeof text,"ACCTS %s IN-GAME %s ONLINE %s",a,g,o);
   if(strlen(text)*TA_POPULATION_MENU_ADVANCE+16u>352u)snprintf(text,sizeof text,"ACCTS %s GAME %s ON %s",a,g,o);
+  if(strlen(text)*TA_POPULATION_MENU_ADVANCE+16u>352u)snprintf(text,sizeof text,"A %s GAME %s ON %s",a,g,o);
  }else snprintf(text,sizeof text,"IN-GAME %s   ONLINE %s",g,o);
  unsigned height=ta_population_height(menu),padding=menu?8u:4u,advance=menu?TA_POPULATION_MENU_ADVANCE:6u;
  unsigned w=(unsigned)strlen(text)*advance+2u*padding;if(w>512u)w=512u;

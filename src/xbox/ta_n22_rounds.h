@@ -160,18 +160,22 @@ static void prepareNextRound(unsigned budget){
   warm.s->ppu->noPixels=warm.frame+1<TA_VS_OPTIONS_SETUP_FRAMES;snes_runFrame(warm.s);snes_setSamples(warm.s,audio,800);
  }
 }
-static void showRoundResult(bool lost,bool inputReady){
- menuTouchEnabled=inputReady;
- TA_Video_SetLanOverlay(NULL,0);accountFrame("MATCH RESULT",roundState.peerLeft?"OPPONENT LEFT - YOUR RESULT IS KEPT":"YOUR ROOM STAYS CONNECTED FOR REMATCHES");
- ta_menu_text(screen,44,157,lost?(peerLost?"DRAW":"YOU LOST"):"YOU WIN",lost?0x00f18791:0x005cdb8b,5);
- if(publicMode&&accountAuthenticated){char text[80];snprintf(text,sizeof text,"%s  %lu RATING",ownProfile.name,(unsigned long)ownProfile.rating);ta_menu_text(screen,44,196,text,uiText,2);snprintf(text,sizeof text,"WINS %lu   LOSSES %lu",(unsigned long)ownProfile.wins,(unsigned long)ownProfile.losses);ta_menu_text(screen,44,219,text,uiMuted,2);ta_menu_text(screen,44,242,reportDone?accountNotice:"CONFIRMING RESULT WITH SERVER",uiMuted,2);}
- if(roundState.peerLeft){ta_menu_text(screen,44,286,"OPPONENT LEFT THE ROOM",uiGold,2);menuRow(362,"RETURNING AS HOST",true);}
+static void showRoundResult(bool lost,bool inputReady,const char*winnerName){
+ menuTouchEnabled=inputReady;bool replay=lost&&peerLost&&!roundState.peerLeft&&!peerQuit;
+ TA_Video_SetLanOverlay(NULL,0);accountFrame(replay?"REPLAYING ROUND":lost?"YOU LOST":"YOU WIN",replay?"SIMULTANEOUS TOP-OUT - NO RATING CHANGE":roundState.peerLeft?"OPPONENT LEFT - YOUR RESULT IS KEPT":"YOUR ROOM STAYS CONNECTED FOR REMATCHES");
+ ta_result_banner(screen,replay?NULL:winnerName,158,(uint32_t)GetTickCount());
+ if(!replay&&publicMode&&accountAuthenticated){char text[80];snprintf(text,sizeof text,"%s  %lu RATING",ownProfile.name,(unsigned long)ownProfile.rating);ta_menu_text(screen,44,196,text,uiText,2);snprintf(text,sizeof text,"WINS %lu   LOSSES %lu",(unsigned long)ownProfile.wins,(unsigned long)ownProfile.losses);ta_menu_text(screen,44,219,text,uiMuted,2);ta_menu_text(screen,44,242,reportDone?accountNotice:"CONFIRMING RESULT WITH SERVER",uiMuted,2);}
+ if(replay){ta_menu_text(screen,58,234,"A WINNER IS REQUIRED",uiGold,2);ta_menu_text(screen,58,274,"RESTARTING WITH THE SAME SETTINGS",uiText,2);}
+ else if(roundState.peerLeft){ta_menu_text(screen,44,286,"OPPONENT LEFT THE ROOM",uiGold,2);menuRow(362,"RETURNING AS HOST",true);}
  else{menuRow(286,"REMATCH",resultChoice==0);menuRow(324,"CHARACTER AND SPEED",resultChoice==1);menuRow(362,"LEAVE ROOM",resultChoice==2);}
- accountFooter(inputReady?(roundState.peerLeft?"A REOPEN ROOM  B LEAVE":"D-PAD MOVE  A SELECT  B LEAVE"):"RESULTS - INPUT LOCKED BRIEFLY",roundState.localVote?"REMATCH REQUESTED - WAITING":roundState.peerVote?"OPPONENT WANTS ANOTHER ROUND":"CHOOSE YOUR NEXT MATCH");menuTouchEnabled=true;
+ accountFooter(inputReady?(replay?"REPLAYING AUTOMATICALLY  B LEAVE":roundState.peerLeft?"A REOPEN ROOM  B LEAVE":"D-PAD MOVE  A SELECT  B LEAVE"):"RESULTS - INPUT LOCKED BRIEFLY",replay?"SAME SETTINGS - WINNER REQUIRED":roundState.localVote?"REMATCH REQUESTED - WAITING":roundState.peerVote?"OPPONENT WANTS ANOTHER ROUND":"CHOOSE YOUR NEXT MATCH");menuTouchEnabled=true;
 }
 static void drainRoundControls(void){uint32_t begin=GetTickCount();while(ta_vs_pending(&lobby.session)&&!roundState.peerLeft&&(uint32_t)(GetTickCount()-begin)<1500){if(pump(false))break;caption("LEAVING MATCH","WAITING FOR PEER ACKNOWLEDGEMENT",true);}}
 static int playRomRound(int&error){
  accountArm();resultChoice=0;
+ char roundLocalName[17],roundPeerName[17];
+ snprintf(roundLocalName,sizeof roundLocalName,"%.16s",publicMode&&ownProfile.name[0]?ownProfile.name:lobby.role?"PLAYER 2":"PLAYER 1");
+ snprintf(roundPeerName,sizeof roundPeerName,"%.16s",publicMode&&otherProfile.name[0]?otherProfile.name:lobby.role?"PLAYER 1":"PLAYER 2");
  roundState.phase=TA_ROUND_PLAY;Snes*s=game.s;
  TA_Log("[TA N22 MATCH] running role=%u level=%u round=%lu seed=%lu local=P0 opponent=display_only\n",(unsigned)lobby.role,sharedSpeed,(unsigned long)roundState.epoch,(unsigned long)game.seed);
  TA_Log("[TA N22 OPTIONS] speed=%u character=%u peer_character=%u transport=%s\n",sharedSpeed,ownCharacter,peerCharacter,publicMode?"PUBLIC":"LAN");
@@ -181,7 +185,7 @@ static int playRomRound(int&error){
   unsigned gpuFrames=0,rgbFrames=0;
   unsigned frames=0;bool lost=false,quit=false,ended=false,backRequested=false;uint32_t backAt=0;uint32_t begun=GetTickCount(),lastLog=begun;unsigned lastFrames=0;unsigned lastUpdates=~0u,lastSeconds=~0u;
   uint16_t previous=0;TaMenuPad resultPad;memset(&resultPad,0,sizeof resultPad);
-  bool resultInputStarted=false,resultInputArmed=false;uint32_t resultOpenedAt=0;
+  bool resultInputStarted=false,resultInputArmed=false,replaySeen=false;uint32_t resultOpenedAt=0;
   int result=0;bool sentLeave=false,oldBoardReleased=false;
   for(;;){
    uint16_t pads[2];TA_Input_Poll(pads);uint16_t pressed=pads[0]&~previous;previous=pads[0];++streamTick;
@@ -204,7 +208,9 @@ static int playRomRound(int&error){
      resultPad.repeated=resultNow;resultPad.repeating=false;pressed=0;
      if((uint32_t)(resultNow-resultOpenedAt)>=1000u && !(pads[0]&(1u|0x100u)))resultInputArmed=true;
     }else pressed=menuUpdate(&resultPad,pads[0]);
-    accountReport(lost);
+    if(replaySeen&&roundState.peerLeft)lost=false;
+    bool replay=lost&&peerLost&&!roundState.peerLeft&&!peerQuit;if(replay)replaySeen=true;
+    if(replay){reportDone=1;accountLink.pending=0;accountLink.replyBytes=0;}else accountReport(lost);
     if(!oldBoardReleased){ta_vs_local_bind(NULL);game.active=0;sourceReady=false;TA_Video_SetLanOverlay(NULL,0);if(game.s){TA_Video_ReleaseLanPpu(game.s->ppu);snes_free(game.s);game.s=NULL;}oldBoardReleased=true;}
     if(!roundState.peerLeft)prepareNextRound(4);
     roundState.phase=TA_ROUND_RESULT;game.active=0;ta_vs_local_bind(NULL);sourceReady=false;
@@ -212,7 +218,7 @@ static int playRomRound(int&error){
     if(roundState.peerLeft&&(pressed&0x100u)){roundState.peerLeft=0;break;}
     if((pressed&(1u<<8))||((pressed&1)&&resultChoice==2&&!roundState.peerLeft)){error=sendControl(7);sentLeave=!error;break;}
     if(roundState.peerLeft&&((pressed&1)||((uint32_t)(resultNow-resultOpenedAt)>=2000u&&(reportDone||(uint32_t)(resultNow-resultOpenedAt)>=5000u))))break;
-    if(!roundState.peerLeft&&!roundState.localVote&&(pressed&1)){unsigned options=resultChoice==1;error=sendControl(options?8:5);if(error)break;ta_vs_round_local_vote(&roundState,options);}
+    if(!roundState.peerLeft&&!roundState.localVote&&((pressed&1)||(replay&&resultInputArmed))){unsigned options=replay?0u:resultChoice==1;error=sendControl(options?8:5);if(error)break;ta_vs_round_local_vote(&roundState,options);}
     unsigned offer=roundState.peerLeft?0:ta_vs_round_offer(&roundState,lobby.role);if(offer){error=sendControl(offer);if(error)break;roundState.next=roundState.epoch+1;roundState.nextOptions=(uint8_t)(offer==9);}
     if(roundState.next){result=roundState.nextOptions?2:1;break;}
    }
@@ -248,7 +254,7 @@ static int playRomRound(int&error){
     if(!updateOpponent()){error=TA_VS_CONFLICT;break;}
 #else
     unsigned seconds=(GetTickCount()-begun)/1000;
-    const char*label=ended?(lost?(peerLost?"DRAW":"LOST"):"WIN"):"PLAY";
+    const char*label=ended?(lost?(peerLost?"REPLAY":"LOST"):"WIN"):"PLAY";
     if(lastUpdates!=pictureRx.updates||lastSeconds!=seconds||ended){if(!updateOverlay(label,seconds)){error=TA_VS_CONFLICT;break;}lastUpdates=pictureRx.updates;lastSeconds=seconds;}
 #endif
     bool submitted=!captureFrame&&TA_Video_EndR126(s->ppu);if(submitted)gpuFrames++;else rgbFrames++;
@@ -269,9 +275,9 @@ static int playRomRound(int&error){
     roundState.phase=TA_ROUND_RESULT;sourceReady=false;game.active=0;ta_vs_local_bind(NULL);
 #if defined(TA_VS_LEAN_VIEW) && TA_VS_LEAN_VIEW
     TA_Video_SetLanOverlay(NULL,0);
-    showRoundResult(lost,resultInputArmed);
+    showRoundResult(lost,resultInputArmed,lost?roundPeerName:roundLocalName);
 #else
-    unsigned seconds=(GetTickCount()-begun)/1000;if(!updateOverlay(lost?(peerLost?"DRAW":"LOST"):"WIN",seconds)){error=TA_VS_CONFLICT;break;}
+    unsigned seconds=(GetTickCount()-begun)/1000;if(!updateOverlay(lost?(peerLost?"REPLAY":"LOST"):"WIN",seconds)){error=TA_VS_CONFLICT;break;}
     if(sourceReady)presentCapture();else caption("MATCH ENDED","B RETURN TO LAN");
 #endif
     memset(audio,0,sizeof audio);TA_Audio_Submit(audio);

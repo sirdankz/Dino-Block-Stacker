@@ -5,6 +5,7 @@ extern "C" {
 }
 #include "ta_vs_party_view.h"
 static TaVsParty party;
+static bool partyReplayPending;
 static TaVsUdp partyTransport;
 static TaVsPictureRx partyPictures[4];
 static uint32_t partyRemote[4],partyViewRevision;
@@ -29,7 +30,7 @@ static int partyPump(void){
  N7_ADD(partyNetwork,0);return 0;
 }
 static void partyClose(void){
- TA_Video_SetPartyOverlay(NULL,0);ta_vs_local_bind(NULL);game.active=0;
+ partyReplayPending=false;TA_Video_SetPartyOverlay(NULL,0);ta_vs_local_bind(NULL);game.active=0;
  if(partyTransport.opened&&party.haveCookie){party.leaving=1;party.error=0;for(unsigned k=0;k<3;k++){uint8_t b[TA_PARTY_BYTES];size_t n=ta_vs_party_packet(&party,GetTickCount(),b,sizeof b);if(n)ta_vs_udp_send_to(&partyTransport,partyAddress,partyPort,b,n);}}
  ta_vs_udp_close(&partyTransport);releaseGame();
 }
@@ -67,21 +68,23 @@ static void partySpeedInput(unsigned pressed){
  unsigned current=party.speedRequest?party.speedRequest:party.self==party.host?party.speed:party.speedRequests[party.self]?party.speedRequests[party.self]:party.speed;
  unsigned speed=(pressed&0x80u)?(current<10?current+1:10):(current>1?current-1:1);ta_vs_party_speed(&party,speed);
 }
-static void partyTouchSpeed(void);
-static void partyResults(bool win,bool armed){
+static void partyTouchSpeed(int y=158);
+static void partyResults(bool win,bool armed,const char*winnerName){
  menuTouchEnabled=armed;
- accountFrame(win?"PARTY YOU WIN":party.alive?"PARTY MATCH ENDED":"PARTY DRAW",party.ranked?"PARTY RATING RECORDED":"CASUAL PARTY - SAME ROOM REMATCH");
- char text[80];snprintf(text,sizeof text,"SPEED %u  LEFT/RIGHT %s",party.speed,party.self==party.host?"CHANGE":"REQUEST");ta_vs_lan_text_box(screen,96,158,320,14,text,uiGold,2);partyTouchSpeed();
+ accountFrame(win?"PARTY YOU WIN":winnerName?"PARTY MATCH ENDED":"REPLAYING ROUND",!winnerName?"SIMULTANEOUS TOP-OUT - NO RATING CHANGE":party.ranked?"PARTY RATING RECORDED":"CASUAL PARTY - SAME ROOM REMATCH");
+ ta_result_banner(screen,winnerName,158,(uint32_t)GetTickCount());
+ char text[80];snprintf(text,sizeof text,"SPEED %u  LEFT/RIGHT %s",party.speed,party.self==party.host?"CHANGE":"REQUEST");ta_vs_lan_text_box(screen,96,201,320,14,text,uiGold,2);partyTouchSpeed(201);
  for(unsigned seat=0;seat<4;seat++)if(party.members&(1u<<seat)){
   const char*status=!(party.present&(1u<<seat))?"LEFT ROOM":party.ready&(1u<<seat)?"WANTS REMATCH":"DECIDING";
-  snprintf(text,sizeof text,"%-8s %s%s",party.names[seat],status,seat==party.host?" HOST":"");ta_menu_text(screen,58,188+seat*39,text,seat==party.self?uiGold:uiText,2);
-  if(party.speedRequests[seat]){snprintf(text,sizeof text,"REQUESTS SPEED %u",party.speedRequests[seat]);ta_menu_text(screen,170,205+seat*39,text,uiMuted,2);}
+  snprintf(text,sizeof text,"%-8s %s%s",party.names[seat],status,seat==party.host?" HOST":"");ta_menu_text(screen,58,224+seat*34,text,seat==party.self?uiGold:uiText,2);
+  if(party.speedRequests[seat]){snprintf(text,sizeof text,"REQUESTS SPEED %u",party.speedRequests[seat]);ta_menu_text(screen,170,241+seat*34,text,uiMuted,2);}
  }
  ta_menu_text(screen,44,368,"ALL REMATCH VOTES RETURN TO THE LOBBY",uiMuted,2);
- accountFooter(armed?"A REMATCH  B LEAVE":"RESULTS - INPUT LOCKED BRIEFLY",party.waitingCount?"NEW PLAYER JOINED - NEXT ROUND":party.returning?"WAITING FOR OTHER PLAYERS":"CHOOSE SPEED THEN REQUEST REMATCH");menuTouchEnabled=true;
+ accountFooter(armed?(partyReplayPending?"REPLAYING AUTOMATICALLY  B LEAVE":"A REMATCH  B LEAVE"):"RESULTS - INPUT LOCKED BRIEFLY",party.waitingCount?"NEW PLAYER JOINED - NEXT ROUND":party.returning?"WAITING FOR OTHER PLAYERS":"CHOOSE SPEED THEN REQUEST REMATCH");menuTouchEnabled=true;
 }
 static int partyPlay(void){
  Snes*s=game.s;unsigned frame=0,tick=0,revision=0,viewState=~0u,viewTarget=~0u;uint16_t previous=0,previousGame=0;bool lost=false,ended=false,inputArmed=false;uint32_t endedAt=0;
+ char winnerName[17]={0};bool resultWin=false;
  const unsigned captureInterval=ta_party_capture_interval(ta_vs_party_count(party.members));
 #if !defined(TA_NO_LOG) || !TA_NO_LOG
  uint32_t logAt=GetTickCount();unsigned logFrames=0,gpuFrames=0,rgbFrames=0,captures=0;unsigned long captureCoreMs=0,gpuCoreMs=0;memset(coarse,0,sizeof coarse);unsigned long unusedStats[4];TA_Video_PartyStats(unusedStats);
@@ -94,11 +97,13 @@ static int partyPlay(void){
   if(party.mode&&(gamePressed&0x1000)){ta_vs_party_focus(&party,0,0);ta_vs_party_focus(&party,20000,0);}
   if(++tick==0)++tick;int error=partyPump();if(error)return error;
   if((pads[0]&12)==12&&!lost){lost=true;party.flags|=4;party.requestSent=0;ta_vs_local_bind(NULL);game.active=0;}
-  if(party.phase==3&&!ended){ended=true;endedAt=GetTickCount();inputArmed=false;TA_Video_SetPartyVisual(NULL);ta_vs_local_bind(NULL);game.active=0;}
+  if(party.phase==3&&!ended){unsigned winner=ta_result_winner_slot(party.alive);
+   if(winner<4u)snprintf(winnerName,sizeof winnerName,"%.16s",party.names[winner][0]?party.names[winner]:"PLAYER");
+   partyReplayPending=winner>=4u;resultWin=winner==party.self;ended=true;endedAt=GetTickCount();inputArmed=false;TA_Video_SetPartyVisual(NULL);ta_vs_local_bind(NULL);game.active=0;}
   if(ended){if(party.phase==0||(party.phase==1&&party.returning==0))return 1;if(!inputArmed&&(uint32_t)(GetTickCount()-endedAt)>=1000u&&!(pads[0]&(1u|0x100u)))inputArmed=true;
    if(inputArmed&&(pressed&0x100u))return 0;
-   if((inputArmed&&(pressed&1u))||(ta_vs_party_count(party.present)==1&&(party.present&(1u<<party.self))&&(uint32_t)(GetTickCount()-endedAt)>=1500u))ta_vs_party_return(&party);
-   if(inputArmed)partySpeedInput(pressed);bool win=!lost&&(party.alive&(1u<<party.self));partyResults(win,inputArmed);memset(audio,0,sizeof audio);TA_Audio_Submit(audio);continue;}
+   if((inputArmed&&((pressed&1u)||partyReplayPending))||(ta_vs_party_count(party.present)==1&&(party.present&(1u<<party.self))&&(uint32_t)(GetTickCount()-endedAt)>=1500u))ta_vs_party_return(&party);
+   if(inputArmed)partySpeedInput(pressed);partyResults(resultWin,inputArmed,winnerName[0]?winnerName:NULL);memset(audio,0,sizeof audio);TA_Audio_Submit(audio);continue;}
   if(!lost){
    uint16_t buttons=mapped&~(8u|0x1000u);for(unsigned b=0;b<12;b++){snes_setButtonState(s,1,b,(buttons>>b)&1);snes_setButtonState(s,2,b,false);}
    bool captureFrame=(frame++%captureInterval)==0;if(!captureFrame)TA_Video_BeginR126(s->ppu);N7_TICK(partyCore);snes_runFrame(s);N7_ADD(partyCore,1);
@@ -143,9 +148,9 @@ static void partyOpenChat(void){
  partyChatError=0;partyChatWaiting=party.waiting!=0;partyChatRoom=party.room;partyChatNonce=party.roomNonce;
  taSocialLobbyMenu(partyChatTick,2,party.room,party.roomNonce);
 }
-static void partyTouchSpeed(void){
- menuTouchAction(36,153,54,25,0x40);menuTouchAction(422,153,54,25,0x80);
- ta_menu_text(screen,40,158,"<",uiGold,2);ta_menu_text(screen,458,158,">",uiGold,2);
+static void partyTouchSpeed(int y){
+ menuTouchAction(36,y-5,54,25,0x40);menuTouchAction(422,y-5,54,25,0x80);
+ ta_menu_text(screen,40,y,"<",uiGold,2);ta_menu_text(screen,458,y,">",uiGold,2);
 }
 static void runParty(const uint8_t*rom,unsigned bytes,uint32_t joinRoom=0,int hostMode=-1){
  uint64_t nonce=0;XNetRandom((BYTE*)&nonce,sizeof nonce);if(!nonce)nonce=__builtin_readcyclecounter()|1;
@@ -183,8 +188,12 @@ static void runParty(const uint8_t*rom,unsigned bytes,uint32_t joinRoom=0,int ho
    char waitText[64];snprintf(waitText,sizeof waitText,"ROOM %06lu  QUEUE %u",(unsigned long)party.room,(unsigned)party.queuePosition);ta_menu_text(screen,44,190,waitText,uiGold,2);
    ta_menu_text(screen,44,250,"CURRENT MATCH CONTINUES",uiText,2);accountFooter("B EXIT QUEUE","NEXT LOBBY STARTS AFTER REMATCH VOTES",1);continue;
   }
-  if(party.phase==1){
-   error=partyLoad(rom,bytes);
+   if(partyReplayPending&&party.phase==0){
+    if(!(party.flags&1u)){party.flags|=1u;party.requestSent=0;}
+    if(party.self==party.host&&ta_vs_party_count(party.present)>=2u&&party.ready==party.present&&!party.start){party.start=1;party.requestSent=0;}
+   }
+   if(party.phase==1){
+    partyReplayPending=false;error=partyLoad(rom,bytes);
    if(error&&party.cancelled&&party.phase==0){releaseGame();TA_Video_SetPartyVisual(NULL);error=0;menuBegin(&pad);continue;}
    int result=error?0:partyPlay();if(result<0)error=result;
    releaseGame();TA_Video_SetPartyVisual(NULL);

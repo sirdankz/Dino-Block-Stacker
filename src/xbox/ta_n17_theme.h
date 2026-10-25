@@ -1,6 +1,7 @@
 #include "ta_menu_touch.h"
 /* Menu-only composition. No additional rendering during live versus. */
 #include "ta_menu_text.h"
+#include "ta_menu_results.h"
 static void ta_n17_panel(int x,int y,int w,int h){
 #if defined(TA_DINO_BRAND) && TA_DINO_BRAND
  /* The skin supplies one continuous surface; legacy shades would stack on it. */

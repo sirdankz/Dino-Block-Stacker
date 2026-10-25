@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7
+
+- Show the winning player name beside the supplied eight-frame animated trophy on 1v1 and party results screens across all three ports.
+- Preserve party winner identity while rematch votes and room membership change; simultaneous top-outs automatically replay without recording a rating result.
+- Apply the revised menu frame and restore the original 10x14 counter lettering inside its dotted tab.
+- Reflow party result rows and move touchscreen speed controls with their labels.
+
 ## 1.1.6
 
 - Add the Xbox 360 port with shared console menus, artwork, offline play, LAN, online modes, chat, profiles, leaderboards, and rematches.

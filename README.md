@@ -8,6 +8,8 @@ The application does **not** include the original game ROM, graphics, characters
 ## Features
 
 - Offline play and LAN multiplayer
+- Animated winner trophies on 1v1 and party results screens
+- Automatic replays after simultaneous top-outs; completed matches have one winner
 - Pixel-art(Made by Galactusx) menu frames with a scrolling tiled background
 - Online accounts, in-game and online population counters
 - Lobby and world chat in waiting rooms, with a dedicated chat shortcut in Browse Rooms
@@ -22,10 +24,10 @@ Prebuilt releases are available from the repository's **Releases** page:
 
 | Platform | Release file |
 | --- | --- |
-| Original Xbox ZIP | `DinoBlockStacker-v1.1.6-Xbox-NoLog.zip` |
-| Android | `DinoBlockStacker-v1.1.6.apk` |
+| Original Xbox ZIP | `DinoBlockStacker-v1.1.7-Xbox-NoLog.zip` |
+| Android | `DinoBlockStacker-v1.1.7.apk` |
 | Original Xbox executable | `default.xbe` |
-| Xbox 360 ZIP | `DinoBlockStacker-v1.1.6-Xbox360-NoLog.zip` |
+| Xbox 360 ZIP | `DinoBlockStacker-v1.1.7-Xbox360-NoLog.zip` |
 | Xbox 360 executable | `default.xex` |
 | Source archive | GitHub source archives |
 
@@ -154,6 +156,7 @@ Android release signing uses a local keystore at `%USERPROFILE%\.android\dinoblo
 | --- | --- |
 | `assets/ranks/` | Rank emblem artwork |
 | `assets/menus/` | Menu frame and background artwork |
+| `assets/trophy/` | Animated winner trophy artwork |
 | `src/` | Shared native game runtime and Original Xbox frontend |
 | `android_port/` | Android application, native platform code, and build configuration |
 | `xbox360_port/` | Xbox 360 platform adapter and shared-source build preparation |

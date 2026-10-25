@@ -72,7 +72,7 @@ static void accountButtonLine(int x,int y,const char*line,bool actions=true){
 }
 static void accountFrame(const char*title,const char*sub){
  TA_Menu_Begin(title);menuTouchRowIndex=0;
- ta_n17_backdrop();ta_menu_text(screen,36,34,"DINO BLOCK STACKER",0x007dd9e8,3);ta_menu_text(screen,406,34,"V1.1.6",uiMuted,2);ta_vs_lan_text_box(screen,36,65,440,24,title,uiText,4);
+ ta_n17_backdrop();ta_menu_text(screen,36,34,"DINO BLOCK STACKER",0x007dd9e8,3);ta_menu_text(screen,406,34,"V1.1.7",uiMuted,2);ta_vs_lan_text_box(screen,36,65,440,24,title,uiText,4);
  if(sub)ta_vs_lan_text_box(screen,36,97,440,32,sub,uiMuted,2);
  /* The shared skin already includes the content and footer surfaces. */
 }
@@ -220,7 +220,7 @@ static void accountStats(void){
  snprintf(text,sizeof text,"%s   %lu RATING",ta_account_tier(ownProfile.rating),(unsigned long)ownProfile.rating);eggEmblem(44,199,ownProfile.rating,1);ta_menu_text(screen,90,209,text,uiGold,2);
  if(ownProfile.rank)snprintf(text,sizeof text,"GLOBAL RANK %lu",(unsigned long)ownProfile.rank);else strcpy(text,"GLOBAL RANK - PLAY YOUR FIRST MATCH");ta_menu_text(screen,44,245,text,uiMuted,2);
  snprintf(text,sizeof text,"WINS %lu   LOSSES %lu",(unsigned long)ownProfile.wins,(unsigned long)ownProfile.losses);ta_menu_text(screen,44,280,text,uiText,3);
- snprintf(text,sizeof text,"DRAWS %lu   BEST STREAK %lu",(unsigned long)ownProfile.draws,(unsigned long)ownProfile.best);ta_menu_text(screen,44,319,text,uiMuted,2);
+ snprintf(text,sizeof text,"BEST STREAK %lu",(unsigned long)ownProfile.best);ta_menu_text(screen,44,319,text,uiMuted,2);
  snprintf(text,sizeof text,"STREAK %ld   MATCHES %lu",(long)ownProfile.streak,(unsigned long)(ownProfile.wins+ownProfile.losses+ownProfile.draws));ta_menu_text(screen,44,350,text,uiMuted,2);
 }
 static uint32_t leaderboardColor(uint32_t place){static const uint32_t colors[5]={0x00ffd166,0x00cad5e8,0x00e8a174,0x0065d9d1,0x00b5a1ff};return place>=1&&place<=5?colors[place-1]:uiText;}
@@ -410,7 +410,7 @@ static bool accountSpeedMenu(unsigned*value){
  unsigned choice=*value-1;TaMenuPad pad;menuBegin(&pad);
  for(;;){unsigned pressed=menuRead(&pad);if(pump(false)||roundState.peerLeft||pressed&0x100)return false;choice=menuMove(choice,10,pressed);if(pressed&1){*value=choice+1;return true;}accountFrame("MATCH SPEED","THE HOST SETS THE SAME SPEED FOR BOTH");unsigned first=choice>5?choice-5:0;for(unsigned row=0;row<6&&first+row<10;row++){unsigned i=first+row;char text[24];snprintf(text,sizeof text,"SPEED %u",i+1);unsigned y=160+row*36;menuTouchChoice(36,(int)y-6,440,32,row,i==choice);if(i==choice)accountSelected(y-6,26);ta_menu_text(screen,58,y,text,i==choice?uiGold:uiText,2);}accountFooter("D-PAD MOVE  A CHOOSE  B CANCEL",NULL);}
 }
-static void accountFetchPeer(void){if(publicMode&&accountAuthenticated&&accountCall(9,NULL,0,"GETTING OPPONENT PROFILE")&&accountLink.replyBytes==46)ta_account_profile(&otherProfile,accountLink.reply+2,44);}
+static void accountFetchPeer(void){memset(&otherProfile,0,sizeof otherProfile);if(publicMode&&accountAuthenticated&&accountCall(9,NULL,0,"GETTING OPPONENT PROFILE")&&accountLink.replyBytes==46)ta_account_profile(&otherProfile,accountLink.reply+2,44);}
 static void accountArm(void){
  reportDone=reportOutcome=0;reportEpoch=roundState.epoch;reportAt=0;if(!publicMode||!accountAuthenticated)return;
  uint8_t epoch[4]={(uint8_t)(reportEpoch>>24),(uint8_t)(reportEpoch>>16),(uint8_t)(reportEpoch>>8),(uint8_t)reportEpoch};
@@ -418,7 +418,7 @@ static void accountArm(void){
 }
 static void accountReport(bool lost){
  if(!publicMode||!accountAuthenticated||reportDone)return;
- if(!reportOutcome)reportOutcome=lost?(peerLost?3:2):1;
+ if(!reportOutcome)reportOutcome=lost?2:1;
  if(accountLink.pending)return;
  if(accountLink.replyBytes&&accountLink.reply[0]==7){unsigned status=accountLink.reply[1];if(accountLink.replyBytes==46)ta_account_profile(&ownProfile,accountLink.reply+2,44);if(status!=7){reportDone=1;strcpy(accountNotice,status?accountStatus(status):"MATCH RECORDED - PROFILE UPDATED");TA_Log("[TA N22 ACCOUNT] result_epoch=%lu status=%u rating=%lu wins=%lu losses=%lu\n",(unsigned long)reportEpoch,status,(unsigned long)ownProfile.rating,(unsigned long)ownProfile.wins,(unsigned long)ownProfile.losses);return;}accountLink.replyBytes=0;}
  if(reportAt&&(uint32_t)(GetTickCount()-reportAt)<700)return;

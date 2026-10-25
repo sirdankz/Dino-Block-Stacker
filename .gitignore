@@ -78,6 +78,7 @@ Thumbs.db
 **/dino_party_accounts.py
 **/dino_party_ratings.py
 **/dino_forfeit.py
+**/dino_no_draw.py
 **/dino_lobby_chat.py
 **/UPDATE_SERVER.ps1
 **/install_v*.py
