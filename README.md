@@ -8,15 +8,14 @@ The application does **not** include the original game ROM, graphics, characters
 ## Features
 
 - Offline play and LAN multiplayer
-- Animated winner trophies on 1v1 and party results screens
 - Automatic replays after simultaneous top-outs; completed matches have one winner
-- Pixel-art(Made by Galactusx) menu frames with a scrolling tiled background
+- Pixel-art(Made by Galactusx) menu frames with a scrolling tiled background, trophy animated sprite, & leaderboards
 - Online accounts, in-game and online population counters
 - Lobby and world chat in waiting rooms, with a dedicated chat shortcut in Browse Rooms
 - Direct tapping and swipe navigation for Android menus
 - Xbox world-chat shortcuts: START send, X delete, Y space, L/R jump to SPACE/SEND
 - Gamepad support on all three platforms and on-screen controls on Android
-- Customizable Android touchscreen buttons with per-button position and size, forgiving touch targets, and Always Show, Auto-hide, and Off modes
+- Customizable Android touchscreen buttons 
 
 ## Downloads
 
