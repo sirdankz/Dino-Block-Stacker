@@ -30,7 +30,7 @@ int ta_vs_start_write(const char*name,const uint8_t hash[32],const TaVsStart*t,c
  FILE*f=fopen(name,"wb");if(!f)return -1;int ok=fwrite(h,1,sizeof h,f)==sizeof h&&fwrite(t->data,1,t->bytes,f)==t->bytes&&fwrite(p->pixels,1,sizeof p->pixels,f)==sizeof p->pixels;if(fclose(f))ok=0;return ok?0:-1;
 }
 int ta_vs_start_read_frame(const char*name,const uint8_t hash[32],unsigned expected,TaVsStart*t,TaVsPreview*p){
- if(!name||!hash||!t||!p)return -1;FILE*f=fopen(name,"rb");if(!f)return -1;uint8_t h[72];int ok=fread(h,1,sizeof h,f)==sizeof h&&!memcmp(h,"TAN11C01",8)&&!memcmp(h+8,hash,32);
+ if(!name||!hash||!t||!p)return -1;FILE*f=fopen(name,"rb");if(!f)return -1;uint8_t h[72]={0};int ok=fread(h,1,sizeof h,f)==sizeof h&&!memcmp(h,"TAN11C01",8)&&!memcmp(h+8,hash,32);
  unsigned n=ok?r32(h+40):0;if(!n||n>TA_START_CAPACITY||r32(h+44)!=expected)ok=0;
  if(ok)ok=fread(t->data,1,n,f)==n&&fread(p->pixels,1,sizeof p->pixels,f)==sizeof p->pixels&&fgetc(f)==EOF;
  fclose(f);if(!ok)return -1;uint32_t sum=crc(~0u,h,68);sum=crc(sum,t->data,n);sum=crc(sum,p->pixels,sizeof p->pixels);if(~sum!=r32(h+68))return -1;

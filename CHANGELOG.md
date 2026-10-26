@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.8
+
+- Add the Windows x64 port with shared menus, artwork, local play, LAN, online 1v1/party modes, accounts, chat, ranks and rematches.
+- Support keyboard, mouse, two gamepads, direct text entry, fullscreen and local Windows saves.
+- Confirm lobby, waiting-queue and rematch-room exits with Stay selected initially; keep networking active during the prompt.
+- Use START to ready players and begin party rounds automatically when everyone is ready.
+- Separate B BACK and OPEN CHAT labels and mouse/touch targets across all four ports.
+- Add Windows exploit mitigations and bound clipboard and battery-save reads.
+
 ## 1.1.7
 
 - Show the winning player name beside the supplied eight-frame animated trophy on 1v1 and party results screens across all three ports.

@@ -72,7 +72,7 @@ static void accountButtonLine(int x,int y,const char*line,bool actions=true){
 }
 static void accountFrame(const char*title,const char*sub){
  TA_Menu_Begin(title);menuTouchRowIndex=0;
- ta_n17_backdrop();ta_menu_text(screen,36,34,"DINO BLOCK STACKER",0x007dd9e8,3);ta_menu_text(screen,406,34,"V1.1.7",uiMuted,2);ta_vs_lan_text_box(screen,36,65,440,24,title,uiText,4);
+ ta_n17_backdrop();ta_menu_text(screen,36,34,"DINO BLOCK STACKER",0x007dd9e8,3);ta_menu_text(screen,406,34,"V1.1.8",uiMuted,2);ta_vs_lan_text_box(screen,36,65,440,24,title,uiText,4);
  if(sub)ta_vs_lan_text_box(screen,36,97,440,32,sub,uiMuted,2);
  /* The shared skin already includes the content and footer surfaces. */
 }
@@ -82,7 +82,7 @@ static void accountChatHint(int y){
  static const unsigned widths[7]={1,2,3,5,3,2,1};
  for(unsigned row=0;row<7;row++)accountRect(x+122+10-(int)(2*widths[row]),y+(int)row*2,(int)widths[row]*2,2,0x00000000u);
  ta_vs_lan_text_box(screen,x+136,y,70,14,"BUTTON",uiMuted,2);
- menuTouchAction(x-4,y>=430?430:y-5,210,y>=430?18:24,4u);
+ menuTouchAction(x-4,ta_lobby_footer_top(y),210,ta_lobby_footer_height(y),4u);
 }
 static void accountFooter(const char*primaryLine,const char*secondaryLine,unsigned chatLine=0,bool secondaryControls=false){
  accountButtonLine(36,TA_MENU_FOOTER_PRIMARY,primaryLine);if(secondaryLine)accountButtonLine(36,TA_MENU_FOOTER_SECONDARY,secondaryLine,secondaryControls);
@@ -131,6 +131,46 @@ static void menuActions(const char*const*labels,unsigned count,unsigned selected
   ta_vs_lan_text_box(screen,x+8,412,(int)width-16,14,labels[i],i==selected?uiGold:uiText,2);
  }
  accountButtonLine(36,TA_MENU_FOOTER_SECONDARY,hint);if(submit)TA_Video_Submit((const uint8_t*)screen);
+}
+
+/* Modal leave decisions keep the current connection alive and consume the
+   opening press. STAY is selected by default, including for mouse/controller. */
+static int (*taLobbyUiTick)(void);
+static bool taLobbyConfirming;
+struct TaLobbyUiScope {
+ int (*previous)(void);
+ explicit TaLobbyUiScope(int (*tick)(void)):previous(taLobbyUiTick){taLobbyUiTick=tick;}
+ ~TaLobbyUiScope(){taLobbyUiTick=previous;}
+ void suspend(){taLobbyUiTick=previous;}
+};
+static bool accountConfirmLeave(const char*detail,int (*tick)(void)=NULL,int*statusOut=NULL){
+ if(statusOut)*statusOut=0;if(taLobbyConfirming)return false;
+ struct ConfirmScope{ConfirmScope(){taLobbyConfirming=true;}~ConfirmScope(){taLobbyConfirming=false;}} scope;
+ unsigned choice=0;TaMenuPad pad;menuBegin(&pad);
+ for(;;){unsigned pressed=menuRead(&pad);int status=tick?tick():pump(false);
+  if(status){if(statusOut)*statusOut=status;return false;}
+  if(pressed&0x100u)return false;choice=menuMove(choice,2,pressed);
+  if(pressed&1u)return choice==1;
+  accountFrame("LEAVE LOBBY?",detail?detail:"CONFIRM BEFORE DISCONNECTING");
+  menuRow(212,"STAY IN LOBBY",choice==0,3);menuRow(276,"LEAVE LOBBY",choice==1,3);
+  accountFooter("A SELECT     B STAY","THE ROOM STAYS CONNECTED UNTIL CONFIRMED");
+ }
+}
+extern "C" int TA_Lobby_Active(void){return taLobbyUiTick!=NULL;}
+extern "C" int TA_Lobby_ConfirmExit(void){return !taLobbyUiTick?1:taLobbyConfirming?0:accountConfirmLeave("EXIT THE APPLICATION AND LEAVE THIS ROOM?",taLobbyUiTick)?1:0;}
+/* Independent slots keep BACK and OPEN CHAT apart even when labels change. */
+static void accountRoomFooter(const char*action,const char*status){
+ if(action)accountButtonLine(36,TA_MENU_FOOTER_PRIMARY,action);
+ accountButtonLine(action?168:36,TA_MENU_FOOTER_PRIMARY,"B BACK");
+ accountChatHint(TA_MENU_FOOTER_PRIMARY);
+ if(status)accountButtonLine(36,TA_MENU_FOOTER_SECONDARY,status,false);
+ TA_Video_Submit((const uint8_t*)screen);
+}
+
+static void accountReadyFooter(const char*readyLabel,const char*hint,bool chat){
+ accountButtonLine(36,TA_MENU_FOOTER_PRIMARY,readyLabel);accountButtonLine(380,TA_MENU_FOOTER_PRIMARY,"B BACK");
+ if(hint)ta_vs_lan_text_box(screen,36,TA_MENU_FOOTER_SECONDARY,210,14,hint,uiMuted,2);
+ if(chat)accountChatHint(TA_MENU_FOOTER_SECONDARY);TA_Video_Submit((const uint8_t*)screen);
 }
 static bool accountKeyboard(const char*title,const char*label,char*out,unsigned maximum,bool password,unsigned minimum=4){
  static const char keys[]="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";unsigned key=0,length=0;char value[33]={0};TaMenuPad pad;menuBegin(&pad);
@@ -335,7 +375,7 @@ static int accountBrowseRooms(void){
   }
   selectedParty=choice>=legacyCount&&choice<count;selectedRoom=choice<legacyCount?publicRoom.rooms[choice].id:selectedParty?publicPartyDirectory.rooms[choice-legacyCount].id:0;
   const char*status=!accountAuthenticated?"PLEASE SIGN IN TO HOST OR JOIN":publicRoom.mode==TA_PUB_JOINING?"JOINING 1V1 ROOM":publicPartyDirectory.error==-304?"UPDATE PARTY RELAY TO R140":publicPartyDirectory.error||(uint32_t)(now-publicPartyDirectory.lastServer)>15000u?"3-4 PLAYER RELAY UNAVAILABLE":!publicPartyDirectory.haveCookie?"CHECKING 3-4 PLAYER RELAY":accountNotice;
-  accountFooter(choice<count?"A JOIN  B EXIT":choice==count?"A REFRESH  B EXIT":"A EXIT  B EXIT",status,1);
+  accountRoomFooter(choice<count?"A JOIN":choice==count?"A REFRESH":NULL,status);
  }
 }
 static int accountHostPublicMenu(void){
@@ -434,7 +474,10 @@ static void accountRenderOptions(bool ready){
  ta_menu_text(screen,58,156,publicMode&&accountAuthenticated?ownProfile.name:"YOUR CHARACTER",c,2);ta_menu_text(screen,58,181,ta_vs_character_name(ownCharacter),uiText,2);ta_menu_text(screen,58,216,"CHOOSE CHARACTER",uiMuted,2);ta_vs_preview_draw_size(&previewAtlas,ownCharacter,screen,390,158,80);
  ta_n17_panel(36,249,440,43);if(optionChoice==1)accountSelected(249,43);ta_menu_text(screen,58,253,"MATCH SPEED",optionChoice==1?uiGold:uiText,2);snprintf(text,sizeof text,"%u",sharedSpeed);ta_menu_text(screen,360,253,text,uiGold,5);ta_menu_text(screen,58,275,lobby.role?"HOST CHOOSES MATCH SPEED":"CHOOSE MATCH SPEED",uiMuted,2);
  ta_n17_panel(36,298,440,97);ta_menu_text(screen,46,307,publicMode&&otherProfile.name[0]?otherProfile.name:"OPPONENT",0x00b5a1ff,2);ta_menu_text(screen,46,330,peerSettings?ta_vs_character_name(peerCharacter):"CHOOSING CHARACTER",uiText,2);ta_menu_text(screen,46,367,peerReady?"READY":"CHOOSING",peerReady?0x0096e3b2:uiMuted,2);if(peerSettings)ta_vs_preview_draw_size(&previewAtlas,peerCharacter,screen,390,302,80);
- const char*items[]={ready?"READY - WAITING":"READY","BACK"};menuActions(items,2,optionChoice>=2?optionChoice-2:~0u,false,publicMode?"A SELECT":"D-PAD CHOOSE  A SELECT  B BACK");if(publicMode)accountChatHint(TA_MENU_FOOTER_SECONDARY);
+ menuTouchChoice(36,404,224,22,2,optionChoice==2);menuTouchChoice(358,404,118,22,3,optionChoice==3);
+ if(optionChoice==2)accountHighlight(36,404,224,22);if(optionChoice==3)accountHighlight(358,404,118,22);
+ accountButtonLine(44,TA_MENU_FOOTER_PRIMARY,ready?"READY - WAITING":"START READY");accountButtonLine(380,TA_MENU_FOOTER_PRIMARY,"B BACK");
+ accountButtonLine(36,TA_MENU_FOOTER_SECONDARY,"A SELECT");if(publicMode)accountChatHint(TA_MENU_FOOTER_SECONDARY);
 }
 
 static const char*controlPhysical(unsigned mask){

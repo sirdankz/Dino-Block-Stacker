@@ -1,4 +1,5 @@
 #pragma once
+#include "ta_vs_lobby_ui.h"
 /* Hit regions use the same safe artwork bounds as the rendered controls. */
 #ifdef TA_ANDROID
 extern "C" void TA_Menu_Reset(void);
@@ -24,6 +25,6 @@ static void menuTouchFooter(int x,int y,const char*text,unsigned advance){
   else if(!strncmp(s,"BACK ",5))action=4;else if(!strncmp(s,"START ",6))action=8;
   else if(s[0]=='X'&&s[1]==' ')action=2;else if(s[0]=='Y'&&s[1]==' ')action=0x200;
   else if(!strncmp(s,"LEFT ",5))action=0x40;else if(!strncmp(s,"RIGHT ",6))action=0x80;
-  if(action){int top=y>=430?430:y-5;int height=y>=430?18:24;menuTouchAction(x+(int)(start*advance)-3,top,(int)((end-start)*advance)+6,height,action);}
+  if(action){int top=ta_lobby_footer_top(y);int height=ta_lobby_footer_height(y);menuTouchAction(x+(int)(start*advance)-3,top,(int)((end-start)*advance)+6,height,action);}
  }
 }

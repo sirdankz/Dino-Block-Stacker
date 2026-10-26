@@ -96,13 +96,19 @@ static int prepareAtLaunch(const uint8_t*rom,unsigned bytes){
 static bool chatOptionsReady;
 static int chatOptionsTick(void){return roundState.peerLeft||(chatOptionsReady&&peerReady)?1:0;}
 static int chatWaitingTick(void){return roundState.peerLeft||publicRoom.havePeer?1:0;}
+static bool lobbyStartQueued;
+static int lobbyWaitingConfirmTick(void){int error=pump(false);return error?error:roundState.peerLeft||ta_vs_lan_ready(&lobby)?1:0;}
+static int lobbyOptionsConfirmTick(void){int error=pump(false);return error?error:roundState.peerLeft||(chatOptionsReady&&peerReady)?1:0;}
+static int lobbyResultsConfirmTick(void){int error=pump(false);return error?error:roundState.next?1:0;}
 static int chooseRoundOptions(const uint8_t*rom,unsigned bytes,int&error){
- accountFetchPeer();roundState.phase=TA_ROUND_SELECT;if((error=prepareMenuCache(rom,bytes))!=0)return -1;TaMenuPad pad;menuBegin(&pad);bool ready=false,sent=false;optionChoice=0;
+ accountFetchPeer();roundState.phase=TA_ROUND_SELECT;if((error=prepareMenuCache(rom,bytes))!=0)return -1;TaMenuPad pad;menuBegin(&pad);bool ready=false,sent=false;optionChoice=0;chatOptionsReady=false;TaLobbyUiScope lobbyScope(lobbyOptionsConfirmTick);
  TA_Log("[TA N22 SELECT] round=%lu preview_ready=%u\n",(unsigned long)roundState.epoch,previewAtlas.ready);
- for(;;){unsigned pressed=menuRead(&pad);if((error=pump(false))!=0)return -1;if(roundState.peerLeft)return 0;if(pressed&0x100){error=sendControl(7);return error?-1:0;}
+ for(;;){unsigned pressed=menuRead(&pad);if((error=pump(false))!=0)return -1;if(roundState.peerLeft)return 0;if(pressed&0x100){chatOptionsReady=ready;int status=0;bool leave=accountConfirmLeave("LEAVE THIS ROOM AND RETURN TO THE MENUS?",lobbyOptionsConfirmTick,&status);menuBegin(&pad);if(status<0){error=status;return -1;}if(leave){error=sendControl(7);return error?-1:0;}continue;}
   if(publicMode&&(pressed&4u)){chatOptionsReady=ready;taSocialLobbyMenu(chatOptionsTick,1,publicRoom.room,publicRoom.roomNonce);menuBegin(&pad);continue;}
   optionChoice=ready?2+menuMove(optionChoice>=2?optionChoice-2:0,2,pressed):menuMove(optionChoice,4,pressed);
-  bool changed=false;if(pressed&1){if(optionChoice==3){error=sendControl(7);return error?-1:0;}if(!ready){if(optionChoice==0){unsigned value=ownCharacter;if(accountCharacterMenu(&value)){changed=value!=ownCharacter;ownCharacter=value;}menuBegin(&pad);}else if(optionChoice==1&&!lobby.role){unsigned value=sharedSpeed;if(accountSpeedMenu(&value)){changed=value!=sharedSpeed;sharedSpeed=value;}menuBegin(&pad);}else if(optionChoice==2){if((error=sendControl(0))!=0)return -1;ready=true;}}}
+  bool changed=false;if(pressed&1){if(optionChoice==3){chatOptionsReady=ready;int status=0;bool leave=accountConfirmLeave("LEAVE THIS ROOM AND RETURN TO THE MENUS?",lobbyOptionsConfirmTick,&status);menuBegin(&pad);if(status<0){error=status;return -1;}if(leave){error=sendControl(7);return error?-1:0;}continue;}if(!ready){if(optionChoice==0){unsigned value=ownCharacter;if(accountCharacterMenu(&value)){changed=value!=ownCharacter;ownCharacter=value;}menuBegin(&pad);}else if(optionChoice==1&&!lobby.role){unsigned value=sharedSpeed;if(accountSpeedMenu(&value)){changed=value!=sharedSpeed;sharedSpeed=value;}menuBegin(&pad);}else if(optionChoice==2){if((error=sendControl(0))!=0)return -1;ready=true;}}}
+  if(!ready&&((pressed&8u)||lobbyStartQueued)){if((error=sendControl(0))!=0)return -1;ready=true;lobbyStartQueued=false;}
+  chatOptionsReady=ready;
   if(!ready&&(!sent||changed)){if(publicMode&&!lobby.role){publicRoom.speed=(uint8_t)sharedSpeed;if(changed)publicRoom.kept=0;}if((error=sendControl(4))!=0)return -1;sent=true;}
   if(ready&&peerReady)return 1;renderOptions(ready);TA_Video_Submit((const uint8_t*)screen);
  }
@@ -196,7 +202,7 @@ static int playRomRound(int&error){
     caption("CHECKING OPPONENT CONNECTION","WAITING FOR SERVER - ROUND PAUSED",true);memset(audio,0,sizeof audio);TA_Audio_Submit(audio);continue;
    }
    if(peerLost||peerQuit)ended=true;
-   if(ended){
+   if(ended){TaLobbyUiScope lobbyScope(lobbyResultsConfirmTick);
     /* Present results immediately, but wait one second and require A/B to
        return to neutral. This prevents a losing swap/raise/Back press from
        becoming REMATCH or LEAVE during the screen transition. */
@@ -215,8 +221,11 @@ static int playRomRound(int&error){
     if(!roundState.peerLeft)prepareNextRound(4);
     roundState.phase=TA_ROUND_RESULT;game.active=0;ta_vs_local_bind(NULL);sourceReady=false;
     resultChoice=menuMove(resultChoice,3,pressed);
-    if(roundState.peerLeft&&(pressed&0x100u)){roundState.peerLeft=0;break;}
-    if((pressed&(1u<<8))||((pressed&1)&&resultChoice==2&&!roundState.peerLeft)){error=sendControl(7);sentLeave=!error;break;}
+    if((pressed&0x100u)||((pressed&1u)&&resultChoice==2&&!roundState.peerLeft)){
+     int status=0;bool leave=accountConfirmLeave("LEAVE THE ROOM INSTEAD OF REMATCHING?",lobbyResultsConfirmTick,&status);menuBegin(&resultPad);
+     if(status<0){error=status;break;}if(!leave)continue;
+     if(roundState.peerLeft){roundState.peerLeft=0;break;}error=sendControl(7);sentLeave=!error;break;
+    }
     if(roundState.peerLeft&&((pressed&1)||((uint32_t)(resultNow-resultOpenedAt)>=2000u&&(reportDone||(uint32_t)(resultNow-resultOpenedAt)>=5000u))))break;
     if(!roundState.peerLeft&&!roundState.localVote&&((pressed&1)||(replay&&resultInputArmed))){unsigned options=replay?0u:resultChoice==1;error=sendControl(options?8:5);if(error)break;ta_vs_round_local_vote(&roundState,options);}
     unsigned offer=roundState.peerLeft?0:ta_vs_round_offer(&roundState,lobby.role);if(offer){error=sendControl(offer);if(error)break;roundState.next=roundState.epoch+1;roundState.nextOptions=(uint8_t)(offer==9);}
@@ -314,11 +323,16 @@ extern "C" void TA_LanGame_Run(const uint8_t*rom,unsigned bytes){
  for(;;){
   releaseGame();leavePublic();ta_vs_udp_close(&transport);memset(&lobby,0,sizeof lobby);ta_vs_round_init(&roundState);
   peerReady=peerLoaded=peerLost=peerQuit=remoteRevision=streamTick=captureRevision=0;peerSettings=0;sourceReady=false;
-  unsigned state=TA_LAN_SELECT,oldState=~0u;uint32_t localIp=0;TaMenuPad connectionPad;menuBegin(&connectionPad);int error=0;
+  lobbyStartQueued=false;unsigned state=TA_LAN_SELECT,oldState=~0u;uint32_t localIp=0;TaMenuPad connectionPad;menuBegin(&connectionPad);int error=0;
   if(publicRehostRequested){publicRehostRequested=false;error=reopenPublicHost(rom,bytes);if(error==1)continue;state=error?TA_LAN_ERROR:TA_LAN_ADDRESS;}
   for(;;){
+   TaLobbyUiScope lobbyScope(state!=TA_LAN_SELECT&&state!=TA_LAN_ERROR?lobbyWaitingConfirmTick:NULL);
    unsigned pressed=menuRead(&connectionPad);
-   if(state!=TA_LAN_SELECT&&(pressed&(0x100|1)))break;
+   if(state!=TA_LAN_SELECT&&(pressed&(0x100u|1u))){
+    if(state==TA_LAN_ERROR)break;int status=0;bool leave=accountConfirmLeave("LEAVE THIS LOBBY AND RETURN TO VERSUS?",lobbyWaitingConfirmTick,&status);menuBegin(&connectionPad);
+    if(status<0){error=status;break;}if(leave)break;continue;
+   }
+   if(state!=TA_LAN_SELECT&&state!=TA_LAN_ERROR&&(pressed&8u))lobbyStartQueued=true;
    if(state==TA_LAN_SELECT){mainChoice=menuMove(mainChoice,5,pressed);if(pressed&1){if(mainChoice==4){leavePublic();ta_vs_udp_close(&transport);freeMenuCache();return;}if(mainChoice==3){accountControlsMenu();menuBegin(&connectionPad);continue;}if(mainChoice==2){error=browsePublic(rom,bytes,&localIp);if(error==3){runParty(rom,bytes,publicPartyJoinRoom,publicPartyHostMode);error=0;break;}if(error==1){error=0;break;}state=error?TA_LAN_ERROR:TA_LAN_ADDRESS;}else{error=beginLobby(rom,bytes,mainChoice==1?0:1,false);state=error?TA_LAN_ERROR:TA_LAN_ADDRESS;}menuBegin(&connectionPad);}}
    if(state!=TA_LAN_SELECT&&state!=TA_LAN_ERROR){XNADDR address;DWORD flags=XNetGetTitleXnAddr(&address);
     if(flags&(XNET_GET_XNADDR_STATIC|XNET_GET_XNADDR_DHCP|XNET_GET_XNADDR_AUTO|XNET_GET_XNADDR_PPPOE)){localIp=address.ina.s_addr;if(publicMode)publicRoom.localAddress=localIp;error=pump(false);state=error?TA_LAN_ERROR:ta_vs_lan_ready(&lobby)?TA_LAN_CONNECTED:lobby.pinned?TA_LAN_HANDSHAKE:lobby.role?TA_LAN_JOIN_WAIT:TA_LAN_HOST_WAIT;}
@@ -331,8 +345,8 @@ extern "C" void TA_LanGame_Run(const uint8_t*rom,unsigned bytes){
    }else{static const char*const names[]={"CHOOSE CONNECTION","GETTING NETWORK ADDRESS","WAITING FOR A PLAYER","FINDING A LAN MATCH","CHECKING CONNECTION","CONNECTED","CONNECTION LOST","NETWORK ERROR"};
     accountFrame(publicMode?"PUBLIC ROOM":"LAN CONNECTION",publicMode&&accountAuthenticated?ownProfile.name:"LOCAL NETWORK VERSUS");
     ta_menu_text(screen,44,171,names[state<=TA_LAN_ERROR?state:TA_LAN_ERROR],state==TA_LAN_ERROR?0x00f18791:uiText,3);char text[80];const uint8_t*ip=(const uint8_t*)&localIp;snprintf(text,sizeof text,"YOUR ADDRESS %u.%u.%u.%u",ip[0],ip[1],ip[2],ip[3]);ta_menu_text(screen,44,224,text,uiMuted,2);
-    if(publicMode&&publicRoom.haveRoom){snprintf(text,sizeof text,"ROOM %06lu",(unsigned long)publicRoom.room);ta_menu_text(screen,44,266,text,uiGold,4);ta_menu_text(screen,44,316,"WAITING FOR AN OPPONENT TO JOIN",uiMuted,2);}else if(error){snprintf(text,sizeof text,publicMode&&!publicRoom.havePeer&&error==-10060?"ROOM SERVER TIMEOUT %d":"CONNECTION ERROR %d",error);ta_menu_text(screen,44,279,text,0x00f18791,2);}else ta_menu_text(screen,44,279,lobby.role?"SEARCHING FOR A HOST":"WAITING FOR AN OPPONENT",uiGold,2);
-    menuRow(351,publicMode&&publicRoom.haveRoom?"EXIT ROOM":"BACK",true);accountFooter(publicMode&&publicRoom.haveRoom?"B EXIT":"A SELECT   B BACK",NULL,publicMode&&publicRoom.haveRoom?1u:0u);}
+    if(publicMode&&publicRoom.haveRoom){snprintf(text,sizeof text,"ROOM %06lu",(unsigned long)publicRoom.room);ta_menu_text(screen,44,266,text,uiGold,4);ta_menu_text(screen,44,316,lobbyStartQueued?"READY - WAITING FOR AN OPPONENT":"WAITING FOR AN OPPONENT TO JOIN",uiMuted,2);}else if(error){snprintf(text,sizeof text,publicMode&&!publicRoom.havePeer&&error==-10060?"ROOM SERVER TIMEOUT %d":"CONNECTION ERROR %d",error);ta_menu_text(screen,44,279,text,0x00f18791,2);}else ta_menu_text(screen,44,279,lobby.role?"SEARCHING FOR A HOST":"WAITING FOR AN OPPONENT",uiGold,2);
+    if(state==TA_LAN_ERROR)accountFooter("B BACK",NULL);else accountReadyFooter(lobbyStartQueued?"READY - WAITING":"START READY","WAIT FOR OPPONENT",publicMode&&publicRoom.haveRoom);}
   }
   if(state!=TA_LAN_CONNECTED||error)continue;
   lobby.session.applicationRound=roundState.epoch;

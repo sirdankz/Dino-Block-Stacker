@@ -23,6 +23,10 @@ Project: https://github.com/Team-Resurgent/RXDK-Libs
 
 **XexTool** — External homebrew executable conversion tool. The Xbox 360 build downloads a checksum-pinned copy from the upstream BadUpdate tools release into an ignored local cache. Neither XexTool nor the upstream tools archive is redistributed in this source package.
 
+**SDL3** — Windows PC windowing, graphics presentation, audio and input. License: zlib. The pinned official development archive is downloaded into an ignored build cache; PC binary packages include `SDL3.dll` and `LICENSES-SDL3.txt`. Project: https://github.com/libsdl-org/SDL
+
+**LLVM, Visual Studio C++ Build Tools, Windows SDK, CMake and Ninja** — External Windows PC build tools installed separately. Compiler and SDK binaries are not redistributed.
+
 ## Game content
 
 No original *Tetris Attack* ROM, ROM-derived startup cache, Nintendo artwork, music, sound effects, or game manual is distributed. Compatible game content must be provided separately and is loaded locally by the application. Neither this project nor its licenses grants permission to obtain, reproduce, or redistribute third-party game content.

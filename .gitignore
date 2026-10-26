@@ -85,3 +85,6 @@ Thumbs.db
 
 # Generated PowerPC project and adapted shared source
 xbox360_port/generated/
+
+# Generated Windows frontend and local dependencies
+/pc_port/generated/

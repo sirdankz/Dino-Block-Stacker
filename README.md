@@ -1,7 +1,7 @@
 # Dino Block Stacker
 
 **Dino Block Stacker** is an unofficial, ROM-free(NO ROM INCLUDED MUST PROVIDE YOUR OWN LEGALLY OBTAINED ROM)
-Original Xbox, Xbox 360, & Android port compatible with the SNES game *Tetris Attack*. It supports local play, LAN multiplayer, and public online features through the project's hosted service.
+Original Xbox, Xbox 360, Android, & Windows PC port compatible with the SNES game *Tetris Attack*. It supports local play, LAN multiplayer, and public online features through the project's hosted service.
 
 The application does **not** include the original game ROM, graphics, characters, music, or sound effects. Game content is loaded locally from a separately supplied, compatible ROM. This project is independent of and is not affiliated with or endorsed by Nintendo, Microsoft, or the original rights holders.
 
@@ -14,7 +14,8 @@ The application does **not** include the original game ROM, graphics, characters
 - Lobby and world chat in waiting rooms, with a dedicated chat shortcut in Browse Rooms
 - Direct tapping and swipe navigation for Android menus
 - Xbox world-chat shortcuts: START send, X delete, Y space, L/R jump to SPACE/SEND
-- Gamepad support on all three platforms and on-screen controls on Android
+- Gamepad support on all four platforms and on-screen controls on Android
+- Windows keyboard, mouse, and two-gamepad support
 - Customizable Android touchscreen buttons 
 
 ## Downloads
@@ -23,11 +24,12 @@ Prebuilt releases are available from the repository's **Releases** page:
 
 | Platform | Release file |
 | --- | --- |
-| Original Xbox ZIP | `DinoBlockStacker-v1.1.7-Xbox-NoLog.zip` |
-| Android | `DinoBlockStacker-v1.1.7.apk` |
+| Original Xbox ZIP | `DinoBlockStacker-v1.1.8-Xbox-NoLog.zip` |
+| Android | `DinoBlockStacker-v1.1.8.apk` |
 | Original Xbox executable | `default.xbe` |
-| Xbox 360 ZIP | `DinoBlockStacker-v1.1.7-Xbox360-NoLog.zip` |
+| Xbox 360 ZIP | `DinoBlockStacker-v1.1.8-Xbox360-NoLog.zip` |
 | Xbox 360 executable | `default.xex` |
+| Windows PC ZIP | `DinoBlockStacker-v1.1.8-Windows-x64-NoLog.zip` |
 | Source archive | GitHub source archives |
 
 **No game ROM is included with any download.** A compatible, unheadered 1 MiB SNES ROM is required. ROM compatibility is checked against the expected SHA-256 value. Each user is responsible for obtaining and using game files lawfully.
@@ -36,8 +38,8 @@ Prebuilt releases are available from the repository's **Releases** page:
 
 The VERSUS menu contains **LAN JOIN**, **LAN HOST**, **ONLINE**, **CONTROLS**, and **OFFLINE PLAY**.
 The ONLINE menu contains **PUBLIC ROOMS**, **PROFILE**, **WORLD CHAT**, and **LEADERBOARDS**.
-PUBLIC ROOMS provides browse and host actions. Hosting and joining require sign-in. Active and full rooms remain listed; an in-game party with an open slot accepts a waiting player for the next round. Waiting players enter the lobby after the current players request a rematch. Press B to return through each menu. Back/Select or the OPEN CHAT label opens chat from Browse Rooms and waiting lobbies. Lone remaining players return to the lobby as host.
-The 1v1 and party leaderboards use independent ratings and six egg ranks: Rotten, Bronze, Silver, Gold, Platinum, and Master. Leaderboards scroll with the D-pad or left stick on Xbox and vertical swipes on Android. Rank emblems render at 34x34 pixels.
+PUBLIC ROOMS provides browse and host actions. Hosting and joining require sign-in. Active and full rooms remain listed; an in-game party with an open slot accepts a waiting player for the next round. Waiting players enter the lobby after the current players request a rematch. Press B to return through each menu. Back/Select or the OPEN CHAT label opens chat from Browse Rooms and waiting lobbies. Lone remaining players return to the lobby as host. Lobby exits require confirmation. START readies players; party rooms begin once everyone is ready. B BACK and OPEN CHAT use separate action areas.
+The 1v1 and party leaderboards use independent ratings and six egg ranks: Rotten, Bronze, Silver, Gold, Platinum, and Master. Leaderboards scroll with the D-pad or left stick on Xbox and vertical swipes on Android, or the mouse wheel on Windows. Rank emblems render at 34x34 pixels.
 
 Counts refer to registered accounts, authenticated players in an active online round, and unique authenticated accounts currently connected to the online service.
 World chat accepts up to 32 ASCII characters per message; profanity is allowed, but racist slurs (including common obfuscations and compounds) are rejected by the server.
@@ -88,6 +90,14 @@ The Xbox 360 port shares the console menus and board layouts. RB cycles junk tar
 Android 1v1 uses the original offline board layout by default. Board positions and sizes save separately by multiplayer mode and player count from **Customize board layouts**, or Android Back > **Board layout** during a match.
 
 The imported ROM is stored locally by the app. Public online features require network access and availability of the project's hosted service. 
+
+### Windows PC
+
+1. Extract the Windows PC release ZIP and keep `SDL3.dll` beside `DinoBlockStacker.exe`.
+2. Launch `DinoBlockStacker.exe` and select the compatible ROM, or place `game.sfc` beside it.
+3. Play with keyboard, mouse, or up to two compatible gamepads.
+
+Enter selects, Escape returns, F5 readies, Tab opens the chat shortcut, and F11 toggles fullscreen. Settings and saves use `%LOCALAPPDATA%\DinoBlockStacker`. See [PC controls](pc_port/README.md#controls) for the full layout.
 
 ## Building from source
 
@@ -149,6 +159,16 @@ The script accepts `-SdkRoot`, `-GradleRoot`, and `-JdkRoot` overrides. The defa
 
 Android release signing uses a local keystore at `%USERPROFILE%\.android\dinoblockstacker-release.jks` and a separate `.pass` file. These credentials are excluded from the repository. Subsequent APK updates must be signed using the same release key to remain compatible with existing installations.
 
+### Windows PC
+
+Requirements: Windows 10 version 1903 or newer or Windows 11, Python 3.10+, Visual Studio 2022 C++ Build Tools with a Windows SDK, LLVM, CMake 3.22+, and Ninja. The build downloads and verifies the pinned official SDL3 dependency. See [PC build documentation](pc_port/README.md#building) for details.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\BUILD_DINO_PC.ps1
+```
+
+Output: `out\DinoBlockStackerPC\Windows-x64\DinoBlockStacker.exe` and a ROM-free Windows ZIP. The script accepts `-OutDir`, `-RomPath`, and `-Jobs`.
+
 ## Source layout
 
 | Path | Contents |
@@ -159,6 +179,7 @@ Android release signing uses a local keystore at `%USERPROFILE%\.android\dinoblo
 | `src/` | Shared native game runtime and Original Xbox frontend |
 | `android_port/` | Android application, native platform code, and build configuration |
 | `xbox360_port/` | Xbox 360 platform adapter and shared-source build preparation |
+| `pc_port/` | Windows PC platform adapters and build configuration |
 | `netplay/` | LAN and hosted-online **client** functionality |
 | `third_party/` | Included third-party source code and notices |
 | `config/server-public-key.hex` | Public verification key used by online clients |
@@ -167,6 +188,7 @@ Android release signing uses a local keystore at `%USERPROFILE%\.android\dinoblo
 | `BUILD_DINO_XBOX.ps1` | Original Xbox build entry point |
 | `BUILD_DINO_ANDROID.ps1` | Android build entry point |
 | `BUILD_DINO_XBOX360.ps1` | Xbox 360 build entry point |
+| `BUILD_DINO_PC.ps1` | Windows PC build entry point |
 
 Online play connects to a separately maintained hosted service. Public connection settings and verification keys are included in the client source.
 

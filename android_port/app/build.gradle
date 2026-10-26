@@ -9,7 +9,7 @@ android {
         applicationId 'org.dinoblockstacker.app'
         minSdk 24
         targetSdk 34
-        versionCode 10024
+        versionCode 10025
         versionName identity.version
         externalNativeBuild { cmake { arguments '-DANDROID_STL=c++_static', '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'; abiFilters 'arm64-v8a', 'x86_64' } }
     }
