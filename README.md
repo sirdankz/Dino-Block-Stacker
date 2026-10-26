@@ -34,17 +34,7 @@ Prebuilt releases are available from the repository's **Releases** page:
 
 **No game ROM is included with any download.** A compatible, unheadered 1 MiB SNES ROM is required. ROM compatibility is checked against the expected SHA-256 value. Each user is responsible for obtaining and using game files lawfully.
 
-## Online menu
-
-The VERSUS menu contains **LAN JOIN**, **LAN HOST**, **ONLINE**, **CONTROLS**, and **OFFLINE PLAY**.
-The ONLINE menu contains **PUBLIC ROOMS**, **PROFILE**, **WORLD CHAT**, and **LEADERBOARDS**.
-PUBLIC ROOMS provides browse and host actions. Hosting and joining require sign-in. Active and full rooms remain listed; an in-game party with an open slot accepts a waiting player for the next round. Waiting players enter the lobby after the current players request a rematch. Press B to return through each menu. Back/Select or the OPEN CHAT label opens chat from Browse Rooms and waiting lobbies. Lone remaining players return to the lobby as host. Lobby exits require confirmation. START readies players; party rooms begin once everyone is ready. B BACK and OPEN CHAT use separate action areas.
-The 1v1 and party leaderboards use independent ratings and six egg ranks: Rotten, Bronze, Silver, Gold, Platinum, and Master. Leaderboards scroll with the D-pad or left stick on Xbox and vertical swipes on Android, or the mouse wheel on Windows. Rank emblems render at 34x34 pixels.
-
-Counts refer to registered accounts, authenticated players in an active online round, and unique authenticated accounts currently connected to the online service.
-World chat accepts up to 32 ASCII characters per message; profanity is allowed, but racist slurs (including common obfuscations and compounds) are rejected by the server.
-
-On Xbox, START sends a world-chat message directly; X deletes, Y inserts a space, and L/R focus the SPACE/SEND actions.
+On Controller, START sends a world-chat message directly; X deletes, Y inserts a space, and L/R focus the SPACE/SEND actions.
 
 ## Installation
 
