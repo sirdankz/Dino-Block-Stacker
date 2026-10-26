@@ -9,7 +9,6 @@ The application does **not** include the original game ROM, graphics, characters
 
 - Original menu/results music by sirdankz
 - Offline play and LAN multiplayer
-- Automatic replays after simultaneous top-outs; completed matches have one winner
 - Pixel-art(Made by Galactusx) menu frames with a scrolling tiled background, trophy animated sprite, & leaderboards
 - Online accounts, in-game and online population counters
 - Lobby and world chat in waiting rooms, with a dedicated chat shortcut in Browse Rooms
