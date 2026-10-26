@@ -1,5 +1,53 @@
 # Changelog
 
+## 1.2.5
+
+- Set first-run and restored menu/results music to 10% and game audio to 50%, retaining 100% master volume.
+- Preserve existing saved volume settings and use the same fallback music level on the Android launcher.
+
+## 1.2.4
+
+- Add Windows GRAPHICS OPTIONS with Automatic, OpenGL, Direct3D 11, Direct3D 12 and Software modes.
+- Apply and save renderer choices without restarting the game or room; retain the current renderer if a choice is unavailable.
+- Keep automatic stutter recovery in Automatic mode and preserve manual selections across launches.
+- Migrate the previous OpenGL preference and show the active renderer and save/application status in the menu.
+
+## 1.2.3
+
+- Detect repeated Windows graphics stalls and recover through OpenGL without resetting game or room state.
+- Save the OpenGL preference after successful presentation and restore it on later launches.
+- Preserve board textures, text entry and display settings during recovery; retain the existing renderer if replacement fails.
+- Ignore startup, resizing and focus changes when detecting stalls; respect explicit renderer overrides.
+
+## 1.2.2
+
+- Correct panel identities and preview symbols for Circle and Upside-down Triangle.
+- Drive Windows menu/results music from the audio device callback and buffer original game sound independently of presentation.
+- Remove additional frame-limiter waits after overdue frames and rotate frame textures to reduce upload contention.
+- Update Windows population and 1v1 opponent textures only when changed; add optional frame timing capture.
+
+## 1.2.1
+
+- Group controls, volume and block-color settings under OPTIONS on all four ports.
+- Add PC-only fullscreen/windowed mode and window-size presets, retaining F11 and Alt+Enter shortcuts.
+- Save independent master, menu/results music and game audio volume levels locally.
+- Add Classic, Pastel, Sunset, Ocean, Candy and High Contrast block-color presets with per-preset swaps, rotation and reset.
+- Recolor stationary and animated block palettes without altering guest state, gameplay timing, matching rules or background artwork; preserve the READY fade.
+- Support direct mouse/touch adjustment buttons and scrolling color editors.
+
+## 1.2.0
+
+- Move Windows route/adapter refresh to a background worker so presence checks cannot wait on the render/input thread.
+- Use precise nanosecond frame deadlines and limit catch-up after long stalls on PC.
+- Cache the PC menu/results soundtrack at startup, use a precise playback clock, and retain queued audio across temporary output delays.
+
+## 1.1.9
+
+- Play the original Ness_2 track throughout menus and Ness_2ResultsScreen throughout results and rematch screens on all four ports.
+- Crossfade loop boundaries over 100 ms and fade scene changes over 150 ms, with streamed PCM playback on native frontends.
+- Include original recordings, generated playback loops and a separate music license crediting sirdankz and limiting reuse to this port and its forks.
+- Move the tiled menu background down and left like falling rain.
+
 ## 1.1.8
 
 - Add the Windows x64 port with shared menus, artwork, local play, LAN, online 1v1/party modes, accounts, chat, ranks and rematches.

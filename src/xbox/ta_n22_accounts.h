@@ -1,4 +1,5 @@
 #include "ta_menu_touch.h"
+#include "ta_music.h"
 /* N22 menus only. Account requests never run emulation or wait on live input. */
 #ifndef TA_N12_CACHE_DIR
 #define TA_N12_CACHE_DIR "U:\\00000001"
@@ -70,9 +71,16 @@ static void accountButtonLine(int x,int y,const char*line,bool actions=true){
   ta_vs_lan_text_box(screen,x,y,(int)advance,h,text,c,2);
  }
 }
+static unsigned taMenuMusicScene=TA_MUSIC_MENU;
+struct TaMenuMusicScope {
+ unsigned previous;
+ explicit TaMenuMusicScope(unsigned scene):previous(taMenuMusicScene){taMenuMusicScene=scene;TA_Music_SetScene(scene);}
+ ~TaMenuMusicScope(){taMenuMusicScene=previous;}
+};
 static void accountFrame(const char*title,const char*sub){
+ TA_Music_SetScene(taMenuMusicScene);
  TA_Menu_Begin(title);menuTouchRowIndex=0;
- ta_n17_backdrop();ta_menu_text(screen,36,34,"DINO BLOCK STACKER",0x007dd9e8,3);ta_menu_text(screen,406,34,"V1.1.8",uiMuted,2);ta_vs_lan_text_box(screen,36,65,440,24,title,uiText,4);
+ ta_n17_backdrop();ta_menu_text(screen,36,34,"DINO BLOCK STACKER",0x007dd9e8,3);ta_menu_text(screen,406,34,"V1.2.5",uiMuted,2);ta_vs_lan_text_box(screen,36,65,440,24,title,uiText,4);
  if(sub)ta_vs_lan_text_box(screen,36,97,440,32,sub,uiMuted,2);
  /* The shared skin already includes the content and footer surfaces. */
 }
@@ -508,4 +516,5 @@ static void accountControlsMenu(void){
   accountFooter(binding>=0?"B CANCEL BINDING":"A REBIND  B BACK",binding>=0?"BACK BUTTON CANCELS BINDING":saved?"SAVED ON THIS DEVICE":"SAVE FAILED - ACTIVE THIS SESSION");
  }
 }
+#include "ta_options_menu.h"
 #include "ta_n22_presence.h"

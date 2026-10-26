@@ -1,7 +1,12 @@
 Dino Block Stacker
 Copyright (C) 2026 Dino Block Stacker contributors.
 
-Project contributions are licensed under the GNU General Public License,
+Program source contributions are licensed under the GNU General Public License,
 version 3 or (at your option) any later version. See COPYING for the full terms.
 Third-party components retain their respective notices and licenses; see
 THIRD_PARTY_NOTICES.md. No license to an external game ROM or its assets is granted.
+
+The original Ness_2 and Ness_2ResultsScreen recordings and their derived audio
+files are separately licensed, not under the program GPL. Copyright (C) 2026
+sirdankz. Use is permitted only in Dino Block Stacker and forks of this port;
+unrelated-project use requires separate permission. See LICENSE-MUSIC.txt.

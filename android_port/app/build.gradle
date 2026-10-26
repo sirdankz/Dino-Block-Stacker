@@ -5,11 +5,12 @@ android {
     namespace 'org.dinoblockstacker.app'
     compileSdk 34
     ndkVersion '27.3.13750724'
+    androidResources { noCompress += ['wav'] }
     defaultConfig {
         applicationId 'org.dinoblockstacker.app'
         minSdk 24
         targetSdk 34
-        versionCode 10025
+        versionCode 10032
         versionName identity.version
         externalNativeBuild { cmake { arguments '-DANDROID_STL=c++_static', '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'; abiFilters 'arm64-v8a', 'x86_64' } }
     }

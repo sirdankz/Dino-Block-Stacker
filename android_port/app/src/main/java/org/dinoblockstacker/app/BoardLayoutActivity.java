@@ -6,7 +6,7 @@ import android.view.*;
 import android.widget.*;
 
 /** Pre-match editor for all independent mobile board layouts. */
-public final class BoardLayoutActivity extends Activity {
+public final class BoardLayoutActivity extends MusicMenuActivity {
     private BoardLayoutEditor editor;
     @Override public void onCreate(Bundle state){super.onCreate(state);FrameLayout root=new FrameLayout(this);
         editor=new BoardLayoutEditor(this,1,false,s->{},saved->{if(!saved)finish();});root.addView(editor);

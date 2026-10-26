@@ -1,4 +1,5 @@
 #include "ta_pc_internal.h"
+#include "ta_music.h"
 #include "ta_controls_impl.h"
 #include <algorithm>
 #include <fstream>
@@ -37,7 +38,7 @@ void pcMenuCommit(){memcpy(regions,draft,draftCount*sizeof(Region));regionCount=
 extern "C" unsigned TA_Menu_Read(int*delta){*delta=queuedDelta;queuedDelta=0;unsigned action=queuedAction;queuedAction=0;if(*delta&&action){deferredAction=action;return 0;}if(!action&&!*delta){action=deferredAction;deferredAction=0;}return action;}
 void pcMouse(float wx,float wy,unsigned button){
  if(!menuReady||!pcMenuFrame||queuedAction||deferredAction)return;if(button==SDL_BUTTON_RIGHT){queuedAction=0x100;return;}if(button!=SDL_BUTTON_LEFT)return;
- float x,y;pcMenuPoint(wx,wy,x,y);for(unsigned i=regionCount;i;i--){auto&r=regions[i-1];if(x<r.x||x>=r.x+r.w||y<r.y||y>=r.y+r.h)continue;if(r.index>=0){if(selected<0)return;queuedDelta=r.index-selected;queuedAction=1;}else queuedAction=r.action;return;}
+ float x,y;pcMenuPoint(wx,wy,x,y);for(unsigned i=regionCount;i;i--){auto&r=regions[i-1];if(x<r.x||x>=r.x+r.w||y<r.y||y>=r.y+r.h)continue;if(r.index>=0){if(selected<0)return;queuedDelta=r.index-selected;queuedAction=r.action?r.action:1;}else queuedAction=r.action;return;}
 }
 void pcMouseWheel(int rows){if(leaderboardMode)leaderboardScroll=std::clamp(leaderboardScroll+rows,-64,64);else if(menuReady&&selected>=0)queuedDelta=std::clamp(queuedDelta+rows,-32,32);}
 extern "C" void TA_Input_SetLeaderboard(unsigned enabled){leaderboardMode=enabled!=0;leaderboardScroll=0;leaderboardActions=0;}
@@ -48,13 +49,14 @@ static bool pcConfirmSessionExit(){if(pcExitPrompt)return false;struct Scope{Sco
 void pcEvents(){
  SDL_Event event;while(SDL_PollEvent(&event))switch(event.type){
  case SDL_EVENT_QUIT:case SDL_EVENT_WINDOW_CLOSE_REQUESTED:if(pcConfirmSessionExit())throw PcRequest::Quit;break;
+ case SDL_EVENT_WINDOW_RESIZED:case SDL_EVENT_WINDOW_MOVED:case SDL_EVENT_WINDOW_FOCUS_GAINED:case SDL_EVENT_WINDOW_FOCUS_LOST:pcVideoWindowChanged();break;
  case SDL_EVENT_GAMEPAD_ADDED:openPad(event.gdevice.which);break;
  case SDL_EVENT_GAMEPAD_REMOVED:for(auto&p:pads)if(p&&SDL_GetGamepadID(p)==event.gdevice.which){SDL_CloseGamepad(p);p=NULL;}break;
  case SDL_EVENT_MOUSE_BUTTON_DOWN:pcMouse(event.button.x,event.button.y,event.button.button);break;
  case SDL_EVENT_MOUSE_WHEEL:{int step=event.wheel.y>0?-1:event.wheel.y<0?1:0;if(event.wheel.direction==SDL_MOUSEWHEEL_FLIPPED)step=-step;pcMouseWheel(step);break;}
  case SDL_EVENT_TEXT_INPUT:if(pcTextMode)pcTyped+=event.text.text;break;
  case SDL_EVENT_KEY_DOWN:{auto scan=event.key.scancode;bool ctrl=(event.key.mod&SDL_KMOD_CTRL)!=0,alt=(event.key.mod&SDL_KMOD_ALT)!=0;
-  if(!event.key.repeat&&(scan==SDL_SCANCODE_F11||(scan==SDL_SCANCODE_RETURN&&alt))){SDL_SetWindowFullscreen(pcWindow,(SDL_GetWindowFlags(pcWindow)&SDL_WINDOW_FULLSCREEN)==0);break;}
+  if(!event.key.repeat&&(scan==SDL_SCANCODE_F11||(scan==SDL_SCANCODE_RETURN&&alt))){TA_Options_Set(TA_OPT_FULLSCREEN,(SDL_GetWindowFlags(pcWindow)&SDL_WINDOW_FULLSCREEN)?0:1);TA_PC_ApplyDisplayOptions(0);TA_Options_Save();break;}
   if(!event.key.repeat&&ctrl&&scan==SDL_SCANCODE_O&&!pcTextMode&&pcConfirmSessionExit())throw PcRequest::Import;
   if(pcTextMode){if(scan==SDL_SCANCODE_RETURN&&!alt)pcTextSubmit=true;else if(scan==SDL_SCANCODE_ESCAPE)pcTextCancel=true;else if(scan==SDL_SCANCODE_BACKSPACE)pcTextErase=true;else if(ctrl&&scan==SDL_SCANCODE_V){char*text=SDL_GetClipboardText();if(text){pcTyped.append(text,std::min<size_t>(strlen(text),256));SDL_free(text);}}}
   break;}
@@ -67,7 +69,7 @@ static uint16_t gamepad(SDL_Gamepad*p){if(!p||!SDL_GamepadConnected(p))return 0;
  int x=SDL_GetGamepadAxis(p,SDL_GAMEPAD_AXIS_LEFTX),y=SDL_GetGamepadAxis(p,SDL_GAMEPAD_AXIS_LEFTY);if(x<-16000)bits|=0x40;if(x>16000)bits|=0x80;if(y<-16000)bits|=0x10;if(y>16000)bits|=0x20;
  if(SDL_GetGamepadAxis(p,SDL_GAMEPAD_AXIS_LEFT_TRIGGER)>8000)bits|=0x400;if(SDL_GetGamepadAxis(p,SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)>8000)bits|=0x800;return bits;
 }
-extern "C" void TA_Input_Poll(uint16_t out[2]){
+extern "C" void TA_Input_Poll(uint16_t out[2]){pcFrameStart();TA_Music_MenuFrame();
  pcEvents();if(backgroundTick)backgroundTick();const bool*down=SDL_GetKeyboardState(NULL);bool focused=(SDL_GetWindowFlags(pcWindow)&SDL_WINDOW_INPUT_FOCUS)!=0;
  for(unsigned p=0;p<2;p++){out[p]=gamepad(pads[p]);if(focused&&!pcTextMode){for(unsigned b=0;b<14;b++)if(down[keys[p][b]])out[p]|=(uint16_t)(1u<<b);}}
  if(focused){if(pcTextMode){if(down[SDL_SCANCODE_UP])out[0]|=0x10;if(down[SDL_SCANCODE_DOWN])out[0]|=0x20;if(down[SDL_SCANCODE_LEFT])out[0]|=0x40;if(down[SDL_SCANCODE_RIGHT])out[0]|=0x80;}

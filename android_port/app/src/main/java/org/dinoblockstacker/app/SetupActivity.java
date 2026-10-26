@@ -11,7 +11,7 @@ import java.io.*;
 import java.security.MessageDigest;
 
 /** Android-only ROM import. The game and every N17 menu stay native/shared. */
-public final class SetupActivity extends Activity {
+public final class SetupActivity extends MusicMenuActivity {
     private static final int PICK_ROM=17;
     private static final String ROM_HASH="579bf1a1988d4af06a69cc1d82a2478ebe51940c5ced7f97e83029a24e6aa778";
     private Button play,choose;private TextView status;private Spinner touchMode;

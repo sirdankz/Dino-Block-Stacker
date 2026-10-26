@@ -1,4 +1,5 @@
 #include "ta_android_platform.h"
+#include "ta_music_impl.h"
 #include "ta_controls_impl.h"
 #include "ta_vs_mobile_view.h"
 #include <jni.h>
@@ -89,7 +90,7 @@ extern "C" JNIEXPORT void JNICALL Java_org_dinoblockstacker_app_GameActivity_nat
  if(action!=0)return;
  for(unsigned i=menuRegionCount;i;i--){const MenuRegion&a=menuRegions[i-1];
   if(x<a.x||x>=a.x+a.w||y<a.y||y>=a.y+a.h)continue;
-  if(a.index>=0){if(menuSelected<0)return;menuQueuedDelta=a.index-menuSelected;menuQueuedAction=1;}
+  if(a.index>=0){if(menuSelected<0)return;menuQueuedDelta=a.index-menuSelected;menuQueuedAction=a.action?a.action:1;}
   else menuQueuedAction=a.action;
   return;
  }
@@ -119,7 +120,7 @@ extern "C" const char*ta_android_cache_dir(void){return cacheRoot.c_str();}
 extern "C" void TA_Log(const char*fmt,...){va_list ap;va_start(ap,fmt);__android_log_vprint(ANDROID_LOG_INFO,"DinoBlockStacker",fmt,ap);va_end(ap);}
 static void (*backgroundTick)(void);
 extern "C" void TA_Background_Set(void (*tick)(void)){backgroundTick=tick;}
-extern "C" void TA_Input_Poll(uint16_t out[2]){while(paused&&!stopped)std::this_thread::sleep_for(std::chrono::milliseconds(10));if(stopped)throw AndroidStop();if(backgroundTick)backgroundTick();out[0]=(uint16_t)buttons[0].load(std::memory_order_relaxed);out[1]=(uint16_t)buttons[1].load(std::memory_order_relaxed);controlsPhysical[0]=out[0];controlsPhysical[1]=out[1];controlsTouch=touchButtons.load(std::memory_order_relaxed);out[0]|=(uint16_t)controlsTouch;}
+extern "C" void TA_Input_Poll(uint16_t out[2]){while(paused&&!stopped)std::this_thread::sleep_for(std::chrono::milliseconds(10));if(stopped)throw AndroidStop();TA_Music_MenuFrame();if(backgroundTick)backgroundTick();out[0]=(uint16_t)buttons[0].load(std::memory_order_relaxed);out[1]=(uint16_t)buttons[1].load(std::memory_order_relaxed);controlsPhysical[0]=out[0];controlsPhysical[1]=out[1];controlsTouch=touchButtons.load(std::memory_order_relaxed);out[0]|=(uint16_t)controlsTouch;}
 /* Portable presentation fallback: cache opponents at8Hz, then scale only the
    local image each presented frame. Original pixel values and frames survive. */
 static void partyBlit(uint32_t*out,unsigned rows,TaPartyRect rect,const uint32_t*source,unsigned stride,unsigned sourceX,unsigned sourceW,unsigned sourceH=224,unsigned sourceY=0){
@@ -130,15 +131,15 @@ static void partyBlit(uint32_t*out,unsigned rows,TaPartyRect rect,const uint32_t
  for(unsigned y=0;y<h;y++){const uint32_t*src=source+(sourceY+y*sourceH/h)*stride;uint32_t*dst=out+(top+y)*512+left;for(unsigned x=0;x<w;x++)dst[x]=src[lookup[x]];}
 }
 #include "ta_android_board_layout.h"
-extern "C" void TA_Video_Submit(const unsigned char*p){menuCommit();present((const uint32_t*)p,480);}
-extern "C" bool TA_Video_SubmitActive224(const unsigned char*p){if(menuMode)TA_Menu_Reset();present((const uint32_t*)p,224);return true;}
-extern "C" void TA_Video_BeginR126(Ppu*){}
+extern "C" void TA_Video_Submit(const unsigned char*p){TA_Music_MenuFrame();menuCommit();present((const uint32_t*)p,480);}
+extern "C" bool TA_Video_SubmitActive224(const unsigned char*p){TA_Music_SetScene(TA_MUSIC_GAME);if(menuMode)TA_Menu_Reset();present((const uint32_t*)p,224);return true;}
+extern "C" void TA_Video_BeginR126(Ppu*){TA_Music_SetScene(TA_MUSIC_GAME);}
 extern "C" bool TA_Video_EndR126(Ppu*){return false;}
-extern "C" bool TA_Video_SubmitNative224Direct(const Ppu*){return false;}
-extern "C" bool TA_Video_SubmitActive224Direct(const Ppu*p){if(menuMode)TA_Menu_Reset();static uint32_t pixels[512*224];if(!ppu_taCopyActive224(p,(uint8_t*)pixels,sizeof pixels))return false;present(pixels,224);return true;}
+extern "C" bool TA_Video_SubmitNative224Direct(const Ppu*){TA_Music_SetScene(TA_MUSIC_GAME);return false;}
+extern "C" bool TA_Video_SubmitActive224Direct(const Ppu*p){TA_Music_SetScene(TA_MUSIC_GAME);if(menuMode)TA_Menu_Reset();static uint32_t pixels[512*224];if(!ppu_taCopyActive224(p,(uint8_t*)pixels,sizeof pixels))return false;present(pixels,224);return true;}
 extern "C" bool TA_Video_SetLanOverlay(const uint32_t*p,unsigned revision){if(!p||opponent!=p){legacyBackdropValid=false;localSceneValid=false;}opponentRevision=revision;opponent=p;return true;}
 extern "C" void TA_Video_ReleaseLanPpu(Ppu*){}
-extern "C" void TA_Audio_Submit(const int16_t*p){if(gameEnv&&audioArray&&audioMethod){gameEnv->SetShortArrayRegion(audioArray,0,1600,(const jshort*)p);gameEnv->CallVoidMethod(gameActivity,audioMethod,audioArray);if(gameEnv->ExceptionCheck()){gameEnv->ExceptionClear();TA_Log("Audio output unavailable; guest APU timing retained\n");audioMethod=NULL;}}}
+extern "C" void TA_Audio_Submit(const int16_t*p){static int16_t mixed[1600];if(!TA_Music_Process(p,mixed,800))return;p=mixed;if(gameEnv&&audioArray&&audioMethod){gameEnv->SetShortArrayRegion(audioArray,0,1600,(const jshort*)p);gameEnv->CallVoidMethod(gameActivity,audioMethod,audioArray);if(gameEnv->ExceptionCheck()){gameEnv->ExceptionClear();TA_Log("Audio output unavailable; guest APU timing retained\n");audioMethod=NULL;}}}
 extern "C" JNIEXPORT void JNICALL Java_org_dinoblockstacker_app_GameActivity_nativePrepare(JNIEnv*,jclass){if(!sessionRunning){stopped=false;paused=false;buttons[0]=buttons[1]=0;touchButtons=0;}}
 extern "C" JNIEXPORT void JNICALL Java_org_dinoblockstacker_app_GameActivity_nativeButtons(JNIEnv*,jclass,jint player,jint mask){if(player>=0&&player<2)buttons[player]=ta_controls_physical_bits((unsigned)mask);}
 extern "C" JNIEXPORT void JNICALL Java_org_dinoblockstacker_app_GameActivity_nativePause(JNIEnv*,jclass,jboolean p){paused=p;buttons[0]=buttons[1]=0;touchButtons=0;leaderboardScroll=0;leaderboardActions=0;}
@@ -176,7 +177,7 @@ extern "C" int ta_android_chat_input(char*out,unsigned capacity,const char*title
 static std::string getString(JNIEnv*env,jstring s){const char*p=env->GetStringUTFChars(s,NULL);std::string r=p?p:"";if(p)env->ReleaseStringUTFChars(s,p);return r;}
 extern "C" JNIEXPORT jstring JNICALL Java_org_dinoblockstacker_app_GameActivity_nativeRun(JNIEnv*env,jobject activity,jstring romName,jstring directory){
  bool expected=false;if(!sessionRunning.compare_exchange_strong(expected,true))return env->NewStringUTF("A game is already running.");buttons[0]=buttons[1]=0;touchButtons=0;opponent=NULL;partyVisual=NULL;partyCacheValid=false;localSceneValid=false;activeBoardProfile=0;rightX=rightY=0;nextFrame=Clock::now();
- std::string error,romPath=getString(env,romName);cacheRoot=getString(env,directory);gameEnv=env;gameActivity=activity;audioArray=env->NewShortArray(1600);audioMethod=env->GetMethodID(env->GetObjectClass(activity),"writeAudio","([S)V");Snes*offline=NULL;
+ std::string error,romPath=getString(env,romName);cacheRoot=getString(env,directory);gameEnv=env;gameActivity=activity;std::string musicRoot=cacheRoot+"/../music";TA_Music_Init(musicRoot.c_str());audioArray=env->NewShortArray(1600);audioMethod=env->GetMethodID(env->GetObjectClass(activity),"writeAudio","([S)V");Snes*offline=NULL;
  try{
   std::vector<uint8_t>rom(1048576);FILE*f=fopen(romPath.c_str(),"rb");bool ok=f&&fread(rom.data(),1,rom.size(),f)==rom.size()&&fgetc(f)==EOF;if(f)fclose(f);uint8_t hash[32];if(ok)ta_rom_sha256(rom.data(),rom.size(),hash);
   static const uint8_t expectedHash[32]={0x57,0x9b,0xf1,0xa1,0x98,0x8d,0x4a,0xf0,0x6a,0x69,0xcc,0x1d,0x82,0xa2,0x47,0x8e,0xbe,0x51,0x94,0x0c,0x5c,0xed,0x7f,0x97,0xe8,0x30,0x29,0xa2,0x4e,0x6a,0xa7,0x78};
@@ -187,5 +188,5 @@ extern "C" JNIEXPORT jstring JNICALL Java_org_dinoblockstacker_app_GameActivity_
    else{snes_setPixelFormat(offline,pixelFormatXRGB);static int16_t pcm[1600];static uint8_t pixels[512*480*4];for(;;){uint16_t pads[2];TA_Input_Poll(pads);for(unsigned p=0;p<2;p++)pads[p]=TA_Input_GameButtons(pads[p],p);for(unsigned p=0;p<2;p++)for(unsigned b=0;b<12;b++)snes_setButtonState(offline,p+1,b,(pads[p]>>b)&1);snes_runFrame(offline);if(!TA_Video_SubmitActive224Direct(offline->ppu)){snes_setPixels(offline,pixels);TA_Video_Submit(pixels);}snes_setSamples(offline,pcm,800);TA_Audio_Submit(pcm);}}
   }
  }catch(const AndroidStop&){}catch(const std::exception&e){error=e.what();}catch(...){error="Native game stopped unexpectedly.";}
- if(offline)snes_free(offline);ta_android_frontend_close();audioMethod=NULL;if(audioArray)env->DeleteLocalRef(audioArray);audioArray=NULL;gameActivity=NULL;gameEnv=NULL;sessionRunning=false;return error.empty()?NULL:env->NewStringUTF(error.c_str());
+ if(offline)snes_free(offline);ta_android_frontend_close();TA_Music_Shutdown();audioMethod=NULL;if(audioArray)env->DeleteLocalRef(audioArray);audioArray=NULL;gameActivity=NULL;gameEnv=NULL;sessionRunning=false;return error.empty()?NULL:env->NewStringUTF(error.c_str());
 }

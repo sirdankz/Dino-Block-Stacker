@@ -1,10 +1,11 @@
 #include "ta_vs_controls.h"
+#include "ta_options_impl.h"
 #if defined(TA_ANDROID)
 static unsigned controlsPhysical[2],controlsTouch;static TaControls defaultControls;
 #endif
 static bool controlsReady;static TaControls controls;static char controlsPath[512];
 extern "C" void TA_Controls_Init(const char*directory){
- controlsReady=true;ta_controls_reset(&controls,0);ta_controls_reset(&controls,1);
+ TA_Options_Init(directory);controlsReady=true;ta_controls_reset(&controls,0);ta_controls_reset(&controls,1);
 #if defined(TA_ANDROID)
  defaultControls=controls;controlsPhysical[0]=controlsPhysical[1]=controlsTouch=0;
 #endif

@@ -1,4 +1,5 @@
 /* OG Xbox gamepads -> SNES joypad bits; retain existing button mapping. */
+#include "ta_music.h"
 #include "ta_platform.h"
 #include "ta_controls_impl.h"
 static HANDLE pads[4];
@@ -41,7 +42,7 @@ extern "C" void TA_Input_Init(void){
 }
 static void (*backgroundTick)(void);
 extern "C" void TA_Background_Set(void (*tick)(void)){backgroundTick=tick;}
-extern "C" void TA_Input_Poll(uint16_t out[2]){
+extern "C" void TA_Input_Poll(uint16_t out[2]){TA_Music_MenuFrame();
   if(backgroundTick)backgroundTick();
   out[0]=out[1]=0;rightX=rightY=0;
   DWORD inserted=0,removed=0;

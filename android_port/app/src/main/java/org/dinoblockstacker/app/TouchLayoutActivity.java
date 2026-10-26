@@ -14,7 +14,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 /** Customize each on-screen button without starting or pausing the game. */
-public final class TouchLayoutActivity extends Activity {
+public final class TouchLayoutActivity extends MusicMenuActivity {
     private TouchPad touchPad;
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);

@@ -1,6 +1,7 @@
 from pathlib import Path
-import hashlib,json,re,sys
+import hashlib,json,re,sys,subprocess
 r=Path(__file__).resolve().parents[2];out=r/'android_port/generated';out.mkdir(parents=True,exist_ok=True)
+subprocess.run([sys.executable,str(r/'tools/prepare_music.py'),'--out',str(r/'android_port/app/src/main/assets/music')],check=True)
 key=Path(sys.argv[1]).read_text(encoding='utf8').strip()
 if not re.fullmatch('[0-9a-fA-F]{64}',key) or not any(bytes.fromhex(key)):raise ValueError('Expected your server PUBLIC key, 64 hex characters')
 identity=json.loads((r/'release_identity.json').read_text());ip=identity['server'];port=identity['server_udp_port']
@@ -27,4 +28,4 @@ defs=[d for d in c['defines'] if d.split('=')[0] not in remove]+[n+'=0' for n in
 (out/'android_defines.cmake').write_text('set(TA_ANDROID_DEFINES\n'+''.join('  "'+d+'"\n' for d in defs)+')\n',encoding='ascii',newline='\n')
 (out/'android_defines.json').write_text(json.dumps(defs,indent=2)+'\n')
 (out/'adapter_manifest.json').write_text(json.dumps({'N17_frontend_SHA256':hashlib.sha256((r/'src/xbox/ta_lan_game.cpp').read_bytes()).hexdigest(),'same_N17_menu_headers':True,'ROM_in_APK':False,'public_endpoint':[ip,port],'public_pin_SHA256':hashlib.sha256(bytes.fromhex(key)).hexdigest(),'Android_architecture_fallbacks':sorted(remove),'guest_CPU_APU_timing_and_native_rules_unchanged':True},indent=2)+'\n')
-print('Dino Block Stacker shared N22 frontend prepared; no ROM/assets bundled.')
+print('Dino Block Stacker shared N22 frontend prepared; no game ROM bundled.')

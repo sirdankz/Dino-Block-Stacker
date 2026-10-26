@@ -7,6 +7,7 @@ The application does **not** include the original game ROM, graphics, characters
 
 ## Features
 
+- Original menu/results music by sirdankz
 - Offline play and LAN multiplayer
 - Automatic replays after simultaneous top-outs; completed matches have one winner
 - Pixel-art(Made by Galactusx) menu frames with a scrolling tiled background, trophy animated sprite, & leaderboards
@@ -18,19 +19,27 @@ The application does **not** include the original game ROM, graphics, characters
 - Windows keyboard, mouse, and two-gamepad support
 - Customizable Android touchscreen buttons 
 
+## Options
+
+OPTIONS includes controls, volume and six customizable panel-color schemes on all four ports. Default levels are 100% master, 10% menu/results music and 50% game audio. Saved custom levels remain in effect; RESTORE VOLUME DEFAULTS applies these defaults.
+
+Windows also includes fullscreen and GRAPHICS OPTIONS: Automatic, OpenGL, Direct3D 11, Direct3D 12 and Software. Graphics choices apply immediately and save locally. Automatic remembers OpenGL recovery after repeated graphics stalls; manual choices remain selected.
+
 ## Downloads
 
 Prebuilt releases are available from the repository's **Releases** page:
 
 | Platform | Release file |
 | --- | --- |
-| Original Xbox ZIP | `DinoBlockStacker-v1.1.8-Xbox-NoLog.zip` |
-| Android | `DinoBlockStacker-v1.1.8.apk` |
+| Original Xbox ZIP | `DinoBlockStacker-v1.2.5-Xbox-NoLog.zip` |
+| Android | `DinoBlockStacker-v1.2.5.apk` |
 | Original Xbox executable | `default.xbe` |
-| Xbox 360 ZIP | `DinoBlockStacker-v1.1.8-Xbox360-NoLog.zip` |
+| Xbox 360 ZIP | `DinoBlockStacker-v1.2.5-Xbox360-NoLog.zip` |
 | Xbox 360 executable | `default.xex` |
-| Windows PC ZIP | `DinoBlockStacker-v1.1.8-Windows-x64-NoLog.zip` |
+| Windows PC ZIP | `DinoBlockStacker-v1.2.5-Windows-x64-NoLog.zip` |
 | Source archive | GitHub source archives |
+
+Keep the packaged `music/` folder beside the desktop/console executable for the menu and results soundtrack. Android includes both tracks in the APK.
 
 **No game ROM is included with any download.** A compatible, unheadered 1 MiB SNES ROM is required. ROM compatibility is checked against the expected SHA-256 value. Each user is responsible for obtaining and using game files lawfully.
 
@@ -166,6 +175,7 @@ Output: `out\DinoBlockStackerPC\Windows-x64\DinoBlockStacker.exe` and a ROM-free
 | `assets/ranks/` | Rank emblem artwork |
 | `assets/menus/` | Menu frame and background artwork |
 | `assets/trophy/` | Animated winner trophy artwork |
+| `assets/music/` | Original menu/results recordings and separate music license |
 | `src/` | Shared native game runtime and Original Xbox frontend |
 | `android_port/` | Android application, native platform code, and build configuration |
 | `xbox360_port/` | Xbox 360 platform adapter and shared-source build preparation |
@@ -185,6 +195,8 @@ Online play connects to a separately maintained hosted service. Public connectio
 ## License and acknowledgments
 
 Project contributions are distributed under the **GNU General Public License v3.0 or later**; see [`LICENSE`](LICENSE) and [`COPYING`](COPYING). Third-party software retains its respective license terms and notices. Details are provided in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
+The original menu and results music is copyright 2026 **sirdankz**, separately licensed under [`LICENSE-MUSIC.txt`](LICENSE-MUSIC.txt) for this port and its forks. Use in unrelated projects requires separate permission; the program GPL does not apply to these recordings.
 
 The license applies only to material that its contributors are authorized to license. It does not grant rights to Nintendo game content, trademarks, or third-party software outside the scope of the applicable licenses. Building or distributing software linked against RXDK also requires compliance with the applicable RXDK and component licenses.
 

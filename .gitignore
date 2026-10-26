@@ -88,3 +88,6 @@ xbox360_port/generated/
 
 # Generated Windows frontend and local dependencies
 /pc_port/generated/
+
+# Generated Android music loops; original separately licensed WAVs live in assets/music.
+/android_port/app/src/main/assets/music/

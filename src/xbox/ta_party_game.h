@@ -84,6 +84,7 @@ static void partyResults(bool win,bool armed,const char*winnerName){
 }
 static int partyResultsConfirmTick(void){int error=partyPump();return error?error:party.phase!=3?1:0;}
 static int partyPlay(void){
+ TA_Music_SetScene(TA_MUSIC_GAME);
  Snes*s=game.s;unsigned frame=0,tick=0,revision=0,viewState=~0u,viewTarget=~0u;uint16_t previous=0,previousGame=0;bool lost=false,ended=false,inputArmed=false;uint32_t endedAt=0;
  char winnerName[17]={0};bool resultWin=false;
  const unsigned captureInterval=ta_party_capture_interval(ta_vs_party_count(party.members));
@@ -101,7 +102,7 @@ static int partyPlay(void){
   if(party.phase==3&&!ended){unsigned winner=ta_result_winner_slot(party.alive);
    if(winner<4u)snprintf(winnerName,sizeof winnerName,"%.16s",party.names[winner][0]?party.names[winner]:"PLAYER");
    partyReplayPending=winner>=4u;resultWin=winner==party.self;ended=true;endedAt=GetTickCount();inputArmed=false;TA_Video_SetPartyVisual(NULL);ta_vs_local_bind(NULL);game.active=0;}
-  if(ended){TaLobbyUiScope lobbyScope(partyResultsConfirmTick);if(party.phase==0||(party.phase==1&&party.returning==0))return 1;if(!inputArmed&&(uint32_t)(GetTickCount()-endedAt)>=1000u&&!(pads[0]&(1u|0x100u)))inputArmed=true;
+  if(ended){TaMenuMusicScope musicScope(TA_MUSIC_RESULTS);TaLobbyUiScope lobbyScope(partyResultsConfirmTick);if(party.phase==0||(party.phase==1&&party.returning==0))return 1;if(!inputArmed&&(uint32_t)(GetTickCount()-endedAt)>=1000u&&!(pads[0]&(1u|0x100u)))inputArmed=true;
    if(inputArmed&&(pressed&0x100u)){int status=0;bool leave=accountConfirmLeave("LEAVE THE PARTY INSTEAD OF REMATCHING?",partyResultsConfirmTick,&status);if(status<0)return status;if(leave)return 0;TA_Input_Poll(pads);previous=pads[0];continue;}
    if((inputArmed&&((pressed&1u)||partyReplayPending))||(ta_vs_party_count(party.present)==1&&(party.present&(1u<<party.self))&&(uint32_t)(GetTickCount()-endedAt)>=1500u))ta_vs_party_return(&party);
    if(inputArmed)partySpeedInput(pressed);partyResults(resultWin,inputArmed,winnerName[0]?winnerName:NULL);memset(audio,0,sizeof audio);TA_Audio_Submit(audio);continue;}

@@ -16,6 +16,11 @@ typedef struct { IN_ADDR ina; } XNADDR;
 #define XNET_GET_XNADDR_PENDING 0u
 extern "C" {
 const char* TA_PC_SaveDirectory(void);
+void TA_PC_ApplyDisplayOptions(unsigned option);
+unsigned TA_PC_RendererChoice(void);
+const char* TA_PC_RendererName(void);
+unsigned TA_PC_RendererStatus(void);
+void TA_PC_SetRenderer(unsigned mode);
 int XNetRandom(BYTE*,unsigned);
 DWORD XNetGetTitleXnAddr(XNADDR*);
 HRESULT TA_Video_Init(void);

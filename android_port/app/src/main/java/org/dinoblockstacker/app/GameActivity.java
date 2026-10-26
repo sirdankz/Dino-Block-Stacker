@@ -52,14 +52,35 @@ public final class GameActivity extends Activity implements InputManager.InputDe
         input=(InputManager)getSystemService(INPUT_SERVICE);input.registerInputDeviceListener(this,null);for(int id:InputDevice.getDeviceIds())onInputDeviceAdded(id);updateTouch();
         try{WifiManager wifi=(WifiManager)getApplicationContext().getSystemService(WIFI_SERVICE);if(wifi!=null){multicast=wifi.createMulticastLock("TA LAN discovery");multicast.setReferenceCounted(false);multicast.acquire();}}catch(RuntimeException ignored){}
         android.util.DisplayMetrics metrics=getResources().getDisplayMetrics();BoardLayouts.loadAll(this,metrics.widthPixels,metrics.heightPixels);
-        nativePrepare();startAudio();gameThread=new Thread(()->{String error=nativeRun(new File(getFilesDir(),"tetris_attack.sfc").getPath(),new File(getFilesDir(),"00000001").getPath());if(error!=null)runOnUiThread(()->{Toast.makeText(this,error,Toast.LENGTH_LONG).show();finish();});},"Dino Block Stacker game");gameThread.start();
+        nativePrepare();MenuMusicPlayer.handoff();startAudio();gameThread=new Thread(()->{try{prepareMusicAssets();}catch(java.io.IOException e){runOnUiThread(()->Toast.makeText(this,"Music files could not be prepared",Toast.LENGTH_LONG).show());}runOnUiThread(MenuMusicPlayer::stop);String error=nativeRun(new File(getFilesDir(),"tetris_attack.sfc").getPath(),new File(getFilesDir(),"00000001").getPath());if(error!=null)runOnUiThread(()->{Toast.makeText(this,error,Toast.LENGTH_LONG).show();finish();});},"Dino Block Stacker game");gameThread.start();
+    }
+    private static byte[] readMusicManifest(java.io.InputStream input)throws java.io.IOException{
+        java.io.ByteArrayOutputStream output=new java.io.ByteArrayOutputStream();byte[] block=new byte[1024];int n;
+        while((n=input.read(block))!=-1){if(output.size()+n>16384)throw new java.io.IOException("Invalid music manifest");output.write(block,0,n);}return output.toByteArray();
+    }
+    private void prepareMusicAssets()throws java.io.IOException{
+        File dir=new File(getFilesDir(),"music");if(!dir.isDirectory()&&!dir.mkdirs())throw new java.io.IOException("Music storage unavailable");
+        byte[] expected;try(java.io.InputStream input=getAssets().open("music/manifest.json")){expected=readMusicManifest(input);}
+        File marker=new File(dir,"manifest.json");boolean current=false;
+        if(marker.isFile()){try(java.io.InputStream input=new java.io.FileInputStream(marker)){current=java.util.Arrays.equals(expected,readMusicManifest(input));}}
+        if(current&&new File(dir,"menu.wav").isFile()&&new File(dir,"results.wav").isFile())return;
+        byte[] block=new byte[65536];
+        for(String name:new String[]{"menu.wav","results.wav","LICENSE-MUSIC.txt"}){
+            File temp=new File(dir,name+".tmp"),target=new File(dir,name);
+            try(java.io.InputStream input=getAssets().open("music/"+name);java.io.FileOutputStream output=new java.io.FileOutputStream(temp)){
+                int n;while((n=input.read(block))!=-1)output.write(block,0,n);output.getFD().sync();
+            }
+            if(!temp.renameTo(target))throw new java.io.IOException("Music installation failed");
+        }
+        File temp=new File(dir,"manifest.json.tmp");try(java.io.FileOutputStream output=new java.io.FileOutputStream(temp)){output.write(expected);output.getFD().sync();}
+        if(!temp.renameTo(marker))throw new java.io.IOException("Music manifest installation failed");
     }
     private void immersive(){getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_LAYOUT_STABLE);}
     @Override public void onWindowFocusChanged(boolean focus){super.onWindowFocusChanged(focus);if(focus)immersive();else releaseInputs();}
     private void startAudio(){try{int min=AudioTrack.getMinBufferSize(48000,AudioFormat.CHANNEL_OUT_STEREO,AudioFormat.ENCODING_PCM_16BIT);audio=new AudioTrack.Builder().setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()).setAudioFormat(new AudioFormat.Builder().setSampleRate(48000).setChannelMask(AudioFormat.CHANNEL_OUT_STEREO).setEncoding(AudioFormat.ENCODING_PCM_16BIT).build()).setTransferMode(AudioTrack.MODE_STREAM).setBufferSizeInBytes(Math.max(6400,min)).build();audio.play();}catch(RuntimeException e){audio=null;}}
     @SuppressWarnings("unused") private void writeAudio(short[] samples){AudioTrack a=audio;if(a!=null)try{a.write(samples,0,samples.length,AudioTrack.WRITE_NON_BLOCKING);}catch(RuntimeException ignored){}}
     @Override protected void onResume(){super.onResume();if(surface!=null)surface.onResume();nativePause(false);AudioTrack a=audio;if(a!=null)try{a.play();}catch(RuntimeException ignored){}}
-    @Override protected void onPause(){nativePause(true);releaseInputs();AudioTrack a=audio;if(a!=null)try{a.pause();a.flush();}catch(RuntimeException ignored){}if(surface!=null)surface.onPause();super.onPause();}
+    @Override protected void onPause(){MenuMusicPlayer.stop();nativePause(true);releaseInputs();AudioTrack a=audio;if(a!=null)try{a.pause();a.flush();}catch(RuntimeException ignored){}if(surface!=null)surface.onPause();super.onPause();}
     @Override protected void onDestroy(){cancelChatInput();nativeStop();input.unregisterInputDeviceListener(this);if(gameThread!=null)try{gameThread.join(1500);}catch(InterruptedException e){Thread.currentThread().interrupt();}AudioTrack a=audio;audio=null;if(a!=null)a.release();if(multicast!=null&&multicast.isHeld())multicast.release();super.onDestroy();}
     @SuppressWarnings("unused") private void beginChatInput(String title){
         chatResult=null;chatPending=true;

@@ -33,7 +33,7 @@ static void ta_menu_art_draw(uint32_t* output,uint32_t now){
         ready=true;steppedAt=now;
     }else if((uint32_t)(now-steppedAt)>=50u){
         unsigned steps=(uint32_t)(now-steppedAt)/50u;steppedAt+=steps*50u;
-        offsetX=(offsetX+steps)%512u;offsetY=(offsetY+steps)%480u;redraw=true;
+        offsetX=(offsetX+steps)%512u;offsetY=(offsetY+480u-steps%480u)%480u;redraw=true;
     }
     if(redraw){
         for(unsigned y=0;y<480u;y++){

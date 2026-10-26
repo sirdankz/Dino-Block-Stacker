@@ -178,6 +178,7 @@ static void showRoundResult(bool lost,bool inputReady,const char*winnerName){
 }
 static void drainRoundControls(void){uint32_t begin=GetTickCount();while(ta_vs_pending(&lobby.session)&&!roundState.peerLeft&&(uint32_t)(GetTickCount()-begin)<1500){if(pump(false))break;caption("LEAVING MATCH","WAITING FOR PEER ACKNOWLEDGEMENT",true);}}
 static int playRomRound(int&error){
+ TA_Music_SetScene(TA_MUSIC_GAME);
  accountArm();resultChoice=0;
  char roundLocalName[17],roundPeerName[17];
  snprintf(roundLocalName,sizeof roundLocalName,"%.16s",publicMode&&ownProfile.name[0]?ownProfile.name:lobby.role?"PLAYER 2":"PLAYER 1");
@@ -202,6 +203,7 @@ static int playRomRound(int&error){
     caption("CHECKING OPPONENT CONNECTION","WAITING FOR SERVER - ROUND PAUSED",true);memset(audio,0,sizeof audio);TA_Audio_Submit(audio);continue;
    }
    if(peerLost||peerQuit)ended=true;
+   TaMenuMusicScope roundMusicScope(ended?TA_MUSIC_RESULTS:TA_MUSIC_GAME);
    if(ended){TaLobbyUiScope lobbyScope(lobbyResultsConfirmTick);
     /* Present results immediately, but wait one second and require A/B to
        return to neutral. This prevents a losing swap/raise/Back press from
@@ -280,7 +282,7 @@ static int playRomRound(int&error){
      presentCapture();
     }
     N7_ADD(videoStart,3);N7_TICK(audioStart);snes_setSamples(s,audio,800);TA_Audio_Submit(audio);N7_ADD(audioStart,4);
-   }else{
+   }else{TaMenuMusicScope resultMusicScope(TA_MUSIC_RESULTS);
     roundState.phase=TA_ROUND_RESULT;sourceReady=false;game.active=0;ta_vs_local_bind(NULL);
 #if defined(TA_VS_LEAN_VIEW) && TA_VS_LEAN_VIEW
     TA_Video_SetLanOverlay(NULL,0);
@@ -317,7 +319,7 @@ static int reopenPublicHost(const uint8_t*rom,unsigned bytes){
  lobby.role=0;publicRoom.speed=(uint8_t)sharedSpeed;ta_vs_public_host(&publicRoom);return 0;
 }
 extern "C" void TA_LanGame_Run(const uint8_t*rom,unsigned bytes){
- TA_Controls_Init(TA_N12_CACHE_DIR);taPresenceStart(rom,bytes);unsigned mainChoice=0;
+ TA_Music_SetScene(TA_MUSIC_MENU);TA_Controls_Init(TA_N12_CACHE_DIR);taPresenceStart(rom,bytes);unsigned mainChoice=0;
  while(prepareAtLaunch(rom,bytes)){freeMenuCache();TaMenuPad retry;menuBegin(&retry);for(;;){if(menuRead(&retry)&(0x100|1))break;caption("SETUP FAILED","SETUP CAN BE RETRIED");}}
  TA_Log("[TA N22 LAN] boot identity=N22_PERSISTENT_ROOMS_REMATCH_PREVIEWS local_controls=immediate rollback=0 guest_timing_guards=original\n");
  for(;;){
@@ -333,7 +335,7 @@ extern "C" void TA_LanGame_Run(const uint8_t*rom,unsigned bytes){
     if(status<0){error=status;break;}if(leave)break;continue;
    }
    if(state!=TA_LAN_SELECT&&state!=TA_LAN_ERROR&&(pressed&8u))lobbyStartQueued=true;
-   if(state==TA_LAN_SELECT){mainChoice=menuMove(mainChoice,5,pressed);if(pressed&1){if(mainChoice==4){leavePublic();ta_vs_udp_close(&transport);freeMenuCache();return;}if(mainChoice==3){accountControlsMenu();menuBegin(&connectionPad);continue;}if(mainChoice==2){error=browsePublic(rom,bytes,&localIp);if(error==3){runParty(rom,bytes,publicPartyJoinRoom,publicPartyHostMode);error=0;break;}if(error==1){error=0;break;}state=error?TA_LAN_ERROR:TA_LAN_ADDRESS;}else{error=beginLobby(rom,bytes,mainChoice==1?0:1,false);state=error?TA_LAN_ERROR:TA_LAN_ADDRESS;}menuBegin(&connectionPad);}}
+   if(state==TA_LAN_SELECT){mainChoice=menuMove(mainChoice,5,pressed);if(pressed&1){if(mainChoice==4){leavePublic();ta_vs_udp_close(&transport);freeMenuCache();return;}if(mainChoice==3){accountOptionsMenu();menuBegin(&connectionPad);continue;}if(mainChoice==2){error=browsePublic(rom,bytes,&localIp);if(error==3){runParty(rom,bytes,publicPartyJoinRoom,publicPartyHostMode);error=0;break;}if(error==1){error=0;break;}state=error?TA_LAN_ERROR:TA_LAN_ADDRESS;}else{error=beginLobby(rom,bytes,mainChoice==1?0:1,false);state=error?TA_LAN_ERROR:TA_LAN_ADDRESS;}menuBegin(&connectionPad);}}
    if(state!=TA_LAN_SELECT&&state!=TA_LAN_ERROR){XNADDR address;DWORD flags=XNetGetTitleXnAddr(&address);
     if(flags&(XNET_GET_XNADDR_STATIC|XNET_GET_XNADDR_DHCP|XNET_GET_XNADDR_AUTO|XNET_GET_XNADDR_PPPOE)){localIp=address.ina.s_addr;if(publicMode)publicRoom.localAddress=localIp;error=pump(false);state=error?TA_LAN_ERROR:ta_vs_lan_ready(&lobby)?TA_LAN_CONNECTED:lobby.pinned?TA_LAN_HANDSHAKE:lobby.role?TA_LAN_JOIN_WAIT:TA_LAN_HOST_WAIT;}
    }
@@ -341,7 +343,7 @@ extern "C" void TA_LanGame_Run(const uint8_t*rom,unsigned bytes){
    if(publicMode&&roundState.peerLeft){publicRehostRequested=true;break;}
    if(publicMode&&publicRoom.haveRoom&&state!=TA_LAN_CONNECTED&&(pressed&4u)){taSocialLobbyMenu(chatWaitingTick,1,publicRoom.room,publicRoom.roomNonce);menuBegin(&connectionPad);continue;}
    if(state==TA_LAN_CONNECTED)break;
-   if(state==TA_LAN_SELECT){accountFrame("VERSUS","CHOOSE A WAY TO PLAY");static const char*const names[]={"LAN JOIN","LAN HOST","ONLINE","CONTROLS","OFFLINE PLAY"};for(unsigned i=0;i<5;i++)menuRow(160+i*43,names[i],mainChoice==i);accountFooter("D-PAD MOVE  A SELECT",NULL);
+   if(state==TA_LAN_SELECT){accountFrame("VERSUS","CHOOSE A WAY TO PLAY");static const char*const names[]={"LAN JOIN","LAN HOST","ONLINE","OPTIONS","OFFLINE PLAY"};for(unsigned i=0;i<5;i++)menuRow(160+i*43,names[i],mainChoice==i);accountFooter("D-PAD MOVE  A SELECT",NULL);
    }else{static const char*const names[]={"CHOOSE CONNECTION","GETTING NETWORK ADDRESS","WAITING FOR A PLAYER","FINDING A LAN MATCH","CHECKING CONNECTION","CONNECTED","CONNECTION LOST","NETWORK ERROR"};
     accountFrame(publicMode?"PUBLIC ROOM":"LAN CONNECTION",publicMode&&accountAuthenticated?ownProfile.name:"LOCAL NETWORK VERSUS");
     ta_menu_text(screen,44,171,names[state<=TA_LAN_ERROR?state:TA_LAN_ERROR],state==TA_LAN_ERROR?0x00f18791:uiText,3);char text[80];const uint8_t*ip=(const uint8_t*)&localIp;snprintf(text,sizeof text,"YOUR ADDRESS %u.%u.%u.%u",ip[0],ip[1],ip[2],ip[3]);ta_menu_text(screen,44,224,text,uiMuted,2);

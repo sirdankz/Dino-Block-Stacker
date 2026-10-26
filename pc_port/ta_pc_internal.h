@@ -13,6 +13,8 @@ extern bool pcTextSubmit,pcTextCancel,pcTextErase;
 std::wstring pcWide(const std::string&);
 std::string pcUtf8(const std::wstring&);
 void pcStorageInit();
+void pcNetworkInit();
+void pcNetworkShutdown();
 void pcEvents();
 void pcMenuCommit();
 void pcMouse(float,float,unsigned);
@@ -20,3 +22,10 @@ void pcMouseWheel(int);
 void pcMenuPoint(float,float,float&,float&);
 void pcPace();
 void pcSaveWindow();
+
+void pcAudioStats(unsigned&,unsigned&);
+void pcFrameStart();
+void pcSetFrameTimings(bool);
+void pcWriteFrameTimings();
+
+void pcVideoWindowChanged();

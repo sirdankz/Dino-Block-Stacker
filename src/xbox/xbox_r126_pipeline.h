@@ -114,7 +114,7 @@ static bool r126Init(void){
 }
 #include "xbox_r127_indexed.h"
 #include "xbox_r129_palette.h"
-extern "C" void TA_Video_BeginR126(Ppu*p){
+extern "C" void TA_Video_BeginR126(Ppu*p){TA_Music_SetScene(TA_MUSIC_GAME);
  r126Locked=r126SubLocked=false;r126Owner=p;unsigned slot=r126Slot=(r126Slot+1)%3;
  if(!r126Main[slot])return;r126Main[slot]->BlockUntilNotBusy();dev->SetTexture(0,NULL);dev->SetTexture(1,NULL);
  if(FAILED(r126Main[slot]->LockRect(0,&r126MainLock,NULL,0)))return;
@@ -180,7 +180,7 @@ static void r126Shutdown(void){
  if(r126SubtractPS)dev->DeletePixelShader(r126SubtractPS);if(r126ExpandPS)dev->DeletePixelShader(r126ExpandPS);
 }
 #else
-extern "C" void TA_Video_BeginR126(Ppu*p){(void)p;}
+extern "C" void TA_Video_BeginR126(Ppu*p){TA_Music_SetScene(TA_MUSIC_GAME);(void)p;}
 extern "C" bool TA_Video_EndR126(Ppu*p){(void)p;return false;}
 extern "C" void TA_Video_R126Counts(unsigned long out[4]){memset(out,0,4*sizeof(*out));}
 #endif

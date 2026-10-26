@@ -62,8 +62,9 @@ if not xex.is_file() or xex.read_bytes()[:4]!=b'XEX2':raise RuntimeError('Retail
 run([tool,'-l',xex],out/'xex-info.txt')
 version=json.loads((ROOT/'release_identity.json').read_text())['version']
 readme=out/'README.txt';readme.write_text("Dino Block Stacker v{version} - Xbox 360\n\nRetail-format homebrew executable for RGH/JTAG and an active Bad Avatar homebrew loader. Xenia is also supported. Logging is disabled.\n\nExtract the game folder to HDD/USB storage and launch default.xex. Place the compatible, unheadered 1 MiB game.sfc beside it. No ROM is included.\n\nProfiles, settings, bindings, and caches use DinoBlockStacker360Data beside the executable when writable. On Xenia/read-only game mounts, they use the normal Xbox saved-game container under the configured content directory.\n\nControls: D-pad/left stick navigate; A select; B back; BACK opens chat where shown; RB cycles junk targets; right stick selects a Focus target. Both controller ports have custom bindings. Hold BACK+START in offline play to return to the menus.\n\nOnline modes use the project's hosted UDP services without Xbox LIVE.\n\nStartup, saved-game storage, LAN play, and online connectivity have been checked in Xenia Canary Netplay. Physical-console verification remains pending.\n".format(version=version),encoding='utf-8')
-publicFiles=[xex,readme]
-for name in ['LICENSE','COPYING','THIRD_PARTY_NOTICES.md','LICENSES-LAKESNES-MIT.txt']:
+run([sys.executable,ROOT/'tools/prepare_music.py','--out',out/'music'])
+publicFiles=[xex,readme]+[out/'music'/n for n in ['menu.wav','results.wav','manifest.json','LICENSE-MUSIC.txt']]
+for name in ['LICENSE-MUSIC.txt','LICENSE','COPYING','THIRD_PARTY_NOTICES.md','LICENSES-LAKESNES-MIT.txt']:
  source=ROOT/name
  if source.is_file():dest=out/name;shutil.copy2(source,dest);publicFiles.append(dest)
 notices=out/'ThirdParty';notices.mkdir(exist_ok=True)

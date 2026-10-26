@@ -54,11 +54,13 @@ def main():
  if sys.version_info<(3,10):raise RuntimeError('Python 3.10 or newer is required.')
  out=args.out_dir.resolve();out.mkdir(parents=True,exist_ok=True);build=out/'build';app=out/'Windows-x64';app.mkdir(exist_ok=True)
  version=json.loads((ROOT/'release_identity.json').read_text())['version'];env,compiler,linker,cmake,ninja=windows_environment();sdk=sdl_dependency()
+ run([sys.executable,ROOT/'tools/prepare_music.py','--out',app/'music'])
  run([sys.executable,PORT/'prepare_pc.py'])
  run([cmake,'-S',PORT,'-B',build,'-G','Ninja','-DCMAKE_BUILD_TYPE=Release','-DCMAKE_C_COMPILER='+str(compiler),'-DCMAKE_CXX_COMPILER='+str(compiler),'-DCMAKE_LINKER='+str(linker),'-DCMAKE_MAKE_PROGRAM='+str(ninja),'-DSDL3_DIR='+str(sdk/'cmake')],env,out/'configure-pc.log')
  run([cmake,'--build',build,'--parallel',str(args.jobs or min(os.cpu_count() or 2,8))],env,out/'build-pc.log')
- files={'DinoBlockStacker.exe':build/'DinoBlockStacker.exe','SDL3.dll':sdk/'lib/x64/SDL3.dll','README.md':PORT/'README.md','LICENSE':ROOT/'LICENSE','COPYING':ROOT/'COPYING','THIRD_PARTY_NOTICES.md':ROOT/'THIRD_PARTY_NOTICES.md','LICENSES-LAKESNES-MIT.txt':ROOT/'LICENSES-LAKESNES-MIT.txt','LICENSES-SDL3.txt':sdk/'LICENSE.txt'}
+ files={'DinoBlockStacker.exe':build/'DinoBlockStacker.exe','SDL3.dll':sdk/'lib/x64/SDL3.dll','README.md':PORT/'README.md','LICENSE-MUSIC.txt':ROOT/'LICENSE-MUSIC.txt','LICENSE':ROOT/'LICENSE','COPYING':ROOT/'COPYING','THIRD_PARTY_NOTICES.md':ROOT/'THIRD_PARTY_NOTICES.md','LICENSES-LAKESNES-MIT.txt':ROOT/'LICENSES-LAKESNES-MIT.txt','LICENSES-SDL3.txt':sdk/'LICENSE.txt'}
  for name,source in files.items():shutil.copy2(source,app/name)
+ for name in ['menu.wav','results.wav','manifest.json','LICENSE-MUSIC.txt']:files['music/'+name]=app/'music'/name
  # Retain Monocypher's original BSD/CC0 notices with distributed binaries.
  source=(ROOT/'third_party/monocypher/monocypher.c').read_text(encoding='utf-8');start=0;end=source.index('#include "monocypher.h"')
  (app/'LICENSES-MONOCYPHER.txt').write_text(source[start:end]+'\n',encoding='utf-8');files['LICENSES-MONOCYPHER.txt']=app/'LICENSES-MONOCYPHER.txt'

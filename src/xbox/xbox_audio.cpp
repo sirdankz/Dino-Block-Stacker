@@ -1,5 +1,6 @@
 /* 48k stereo consumer-paced DirectSound ring; initial simple reference audio. */
 #include "ta_platform.h"
+#include "ta_music_impl.h"
 #define SAMPLES 800
 #define BYTES (SAMPLES*4)
 #define BLOCKS 12
@@ -32,6 +33,7 @@ static DWORD WINAPI feeder(LPVOID){
   return 0;
 }
 extern "C" HRESULT TA_Audio_Init(void){
+  TA_Music_Init("D:\\music");
   HRESULT hr=DirectSoundCreate(NULL,&ds,NULL);if(FAILED(hr))return hr;
   WAVEFORMATEX w;memset(&w,0,sizeof(w));
   w.wFormatTag=WAVE_FORMAT_PCM;w.nChannels=2;w.nSamplesPerSec=48000;
@@ -46,11 +48,11 @@ extern "C" HRESULT TA_Audio_Init(void){
   return thread?S_OK:E_FAIL;
 }
 extern "C" void TA_Audio_Submit(const int16_t* pcm){
-  if(!pcm)return;LONG w=wp,r=rp;LONG used=(w-r+BLOCKS*BYTES)%(BLOCKS*BYTES);
+  if(!pcm)return;static int16_t mixed[1600];if(!TA_Music_Process(pcm,mixed,800))return;pcm=mixed;LONG w=wp,r=rp;LONG used=(w-r+BLOCKS*BYTES)%(BLOCKS*BYTES);
   if(used+BYTES>=BLOCKS*BYTES)return;
   memcpy(ring+(w/BYTES)*SAMPLES*2,pcm,BYTES);
   wp=(w+BYTES)%(BLOCKS*BYTES);
 }
-extern "C" void TA_Audio_Shutdown(void){running=false;
+extern "C" void TA_Audio_Shutdown(void){TA_Music_Shutdown();running=false;
   if(thread){WaitForSingleObject(thread,1000);CloseHandle(thread);thread=NULL;}
   if(buf){buf->Stop();buf->Release();buf=NULL;}if(ds){ds->Release();ds=NULL;}}

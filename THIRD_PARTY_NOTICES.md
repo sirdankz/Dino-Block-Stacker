@@ -30,3 +30,7 @@ Project: https://github.com/Team-Resurgent/RXDK-Libs
 ## Game content
 
 No original *Tetris Attack* ROM, ROM-derived startup cache, Nintendo artwork, music, sound effects, or game manual is distributed. Compatible game content must be provided separately and is loaded locally by the application. Neither this project nor its licenses grants permission to obtain, reproduce, or redistribute third-party game content.
+
+## Original port soundtrack
+
+**Ness_2** and **Ness_2ResultsScreen** — original compositions and recordings by sirdankz, copyright 2026. These are custom port assets, separate from Nintendo game content and from the program GPL. Source WAVs and generated loop versions are covered by [`LICENSE-MUSIC.txt`](LICENSE-MUSIC.txt); permission is limited to this port and forks of this port.

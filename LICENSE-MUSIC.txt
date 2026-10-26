@@ -1,0 +1,33 @@
+Dino Block Stacker Original Music License
+
+Copyright (c) 2026 sirdankz. All rights reserved except as expressly permitted below.
+
+Original compositions and recordings:
+- Ness_2.wav
+- Ness_2ResultsScreen.wav
+
+sirdankz is the composer and copyright owner of these tracks. This license also
+covers the loop-ready, converted, compressed, and otherwise adapted versions
+of these recordings distributed with Dino Block Stacker.
+
+Permission is granted to copy, redistribute, and adapt this music solely as
+part of Dino Block Stacker or a fork derived from this port. The music may be
+bundled and played within that port or fork. Technical modifications such as
+loop crossfades, fades, gain changes, resampling, encoding, and format conversion
+are permitted only for use within that port or fork.
+
+The copyright credit and this license must remain with redistributed music
+and packages containing it. A fork must retain the music ownership credit.
+This permission does not transfer ownership or allow relicensing the music.
+
+No permission is granted to reuse this music in unrelated projects, games,
+applications, soundtracks, sample packs, or standalone music distributions.
+Any use outside Dino Block Stacker or a fork of this port requires separate
+permission from sirdankz.
+
+The music is licensed separately from the program source code. The GPL license
+for the program does not grant additional rights to these recordings. Other
+third-party assets retain their own licenses.
+
+THE MUSIC IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND TO THE EXTENT
+PERMITTED BY APPLICABLE LAW.

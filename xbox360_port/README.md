@@ -33,3 +33,7 @@ Startup, saved-game storage, LAN play, and online connectivity have been checked
 - [Bad Avatar: retail executable requirement](https://github.com/shutterbug2000/ABadAvatar#quick-start)
 - [BadUpdate upstream tools](https://github.com/grimdoomer/Xbox360BadUpdate/releases/tag/v1.2)
 - [Xbox 360 retail UDP socket example](https://github.com/mojobojo/PublicXboxStuff/blob/master/Applications/Xbox/AllocLogger/PluginDemo.cpp)
+
+## Custom soundtrack
+
+Keep the packaged `music/` folder beside the executable. The original menu and results tracks by sirdankz are licensed separately under `LICENSE-MUSIC.txt`, for use in this port and its forks.

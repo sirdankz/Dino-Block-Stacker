@@ -27,6 +27,7 @@ static const uint8_t* font_rows(char c) {
   G(SLASH,1,2,2,4,8,8,16); G(LT,1,2,4,8,4,2,1);
   G(UNDERSCORE,0,0,0,0,0,0,31);
   G(PERCENT,25,26,2,4,8,11,19);
+  G(PLUS,0,4,4,31,4,4,0); G(STAR,0,4,21,14,21,4,0);
 #undef G
   if (c>='a'&&c<='z') c=(char)(c-'a'+'A');
   switch(c){
@@ -41,7 +42,7 @@ static const uint8_t* font_rows(char c) {
     case '4':return N4;case '5':return N5;case '6':return N6;case '7':return N7;
     case '8':return N8;case '9':return N9;case '.':return DOT;case ':':return COLON;
     case '-':return DASH;case '>':return GT;case '<':return LT;case '/':return SLASH;
-    case '%':return PERCENT;case '_':return UNDERSCORE;
+    case '%':return PERCENT;case '_':return UNDERSCORE;case '+':return PLUS;case '*':return STAR;
     default:return blank;
   }
 }

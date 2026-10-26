@@ -15,7 +15,7 @@ set(SRC ${CORE} "${TA_ROOT}/src/native/ta_rom_sha256.c" "${TA_ROOT}/src/native/t
 foreach(n ta_vs_party ta_vs_local_game ta_vs_session ta_vs_attack ta_vs_board_rng ta_vs_board_rows ta_vs_picture ta_vs_lan ta_vs_lan_screen ta_vs_public ta_vs_match ta_vs_round ta_vs_preview ta_vs_start ta_vs_account ta_vs_udp)
  list(APPEND SRC "${TA_ROOT}/netplay/src/${n}.c")
 endforeach()
-add_executable(DinoBlockStacker WIN32 ${SRC} ta_pc_main.cpp ta_pc_os.cpp ta_pc_input.cpp ta_pc_video.cpp ta_pc_text.cpp generated/shared/src/xbox/ta_pc_frontend.cpp)
+add_executable(DinoBlockStacker WIN32 ${SRC} ta_pc_main.cpp ta_pc_os.cpp ta_pc_audio.cpp ta_pc_network.cpp ta_pc_input.cpp ta_pc_video.cpp ta_pc_text.cpp generated/shared/src/xbox/ta_pc_frontend.cpp)
 target_include_directories(DinoBlockStacker PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/generated" "${CMAKE_CURRENT_SOURCE_DIR}/generated/shared/src/xbox" "${TA_ROOT}/src/native" "${TA_ROOT}/src/xbox" "${TA_ROOT}/third_party/lakesnes/snes" "${TA_ROOT}/netplay/src")
 target_compile_definitions(DinoBlockStacker PRIVATE ${TA_PC_DEFINES})
 target_compile_options(DinoBlockStacker PRIVATE /O2 /W3 /utf-8 /GS /guard:cf /clang:-fno-strict-aliasing $<$<COMPILE_LANGUAGE:CXX>:/EHsc>)

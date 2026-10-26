@@ -1,4 +1,5 @@
 /* R6: guarded one-copy PPU -> linear D3D8 texture path; preserve R5 fallback. */
+#include "ta_music.h"
 #include "ta_platform.h"
 extern "C" {
 #include "ppu.h"
@@ -209,7 +210,7 @@ extern "C" void TA_Video_ReleaseLanPpu(Ppu*p){
 }
 #endif
 
-extern "C" void TA_Video_Submit(const unsigned char *pixels){
+extern "C" void TA_Video_Submit(const unsigned char *pixels){TA_Music_MenuFrame();
   if(!dev||!tex||!pixels)return;
   unsigned long start=GetTickCount();
   if(!upload(tex,linear,pixels,480,512))return;
@@ -217,7 +218,7 @@ extern "C" void TA_Video_Submit(const unsigned char *pixels){
   s_lastAfterUpload=afterUpload;
   draw(tex,linear,false);
 }
-extern "C" bool TA_Video_SubmitNative224Direct(const Ppu* ppu){
+extern "C" bool TA_Video_SubmitNative224Direct(const Ppu* ppu){TA_Music_SetScene(TA_MUSIC_GAME);
   if(!dev || !nativeTex || !ppu_taCanCopyNative224(ppu))return false;
   unsigned long start=GetTickCount();
   UPLOAD_START();
@@ -239,7 +240,7 @@ extern "C" bool TA_Video_SubmitNative224Direct(const Ppu* ppu){
   draw(nativeTex,true,true,256);
   return true;
 }
-extern "C" bool TA_Video_SubmitActive224Direct(const Ppu* ppu){
+extern "C" bool TA_Video_SubmitActive224Direct(const Ppu* ppu){TA_Music_SetScene(TA_MUSIC_GAME);
   /* D3D8 linear textures only. Swizzled textures continue to use R5's
      staging+XGSwizzleRect code; never directly write linear pixels to them. */
   if(!TA_Video_ActiveAvailable() || !activeLinear ||
@@ -267,7 +268,7 @@ extern "C" bool TA_Video_SubmitActive224Direct(const Ppu* ppu){
   return true;
 }
 
-extern "C" bool TA_Video_SubmitActive224(const unsigned char *pixels){
+extern "C" bool TA_Video_SubmitActive224(const unsigned char *pixels){TA_Music_SetScene(TA_MUSIC_GAME);
   if(!TA_Video_ActiveAvailable()||!pixels)return false;
   unsigned long start=GetTickCount();
   if(!upload(activeTex,activeLinear,pixels,224,256))return false;

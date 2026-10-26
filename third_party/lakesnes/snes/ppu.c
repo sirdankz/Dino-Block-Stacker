@@ -1,6 +1,7 @@
 #include "ta_r82_cost.h"
 #include "ta_diagnostics.h"
 #include "ta_video_copy.h"
+#include "ta_panel_colors.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2146,6 +2147,8 @@ static inline void ppu_xboxInvalidatePaletteCache(void) {
 }
 
 static inline void ppu_xboxBuildPalette(Ppu* ppu) {
+  static uint32_t optionRevision;
+  if(optionRevision!=taPanelRevision){optionRevision=taPanelRevision;ppu_xboxInvalidatePaletteCache();}
   const uint8_t br = ppu->brightness & 0x0f;
   if(__builtin_expect(s_mode1PaletteValid && s_mode1PaletteBrightness == br, 1)) return;
 #if defined(TA_R43_LINE_OUTPUT_CACHE) && TA_R43_LINE_OUTPUT_CACHE && defined(TA_R32_BG_LINE_CACHE) && TA_R32_BG_LINE_CACHE
@@ -2153,7 +2156,7 @@ static inline void ppu_xboxBuildPalette(Ppu* ppu) {
 #endif
   const uint8_t* bright = s_brightnessLut[br];
   for(int i = 0; i < 256; ++i) {
-    const uint16_t c = ppu->cgram[i];
+    const uint16_t c = ta_panel_color(ppu->cgram,i,ppu->mode);
     const int r = c & 0x1f;
     const int g = (c >> 5) & 0x1f;
     const int b = (c >> 10) & 0x1f;
@@ -2187,7 +2190,7 @@ static inline void ppu_xboxBuildMathPalette(Ppu* ppu) {
   if(__builtin_expect(s_mode1MathPaletteValid && s_mode1MathKey == key, 1)) return;
   const uint8_t* bright = s_brightnessLut[ppu->brightness & 0x0f];
   for(int i = 0; i < 256; ++i) {
-    const uint16_t c = ppu->cgram[i];
+    const uint16_t c = ta_panel_color(ppu->cgram,i,ppu->mode);
     int r = c & 0x1f, g = (c >> 5) & 0x1f, b = (c >> 10) & 0x1f;
     if(ppu->subtractColor) {
       r -= ppu->fixedColorR; g -= ppu->fixedColorG; b -= ppu->fixedColorB;
@@ -2242,7 +2245,7 @@ static inline void ppu_xboxBuildSubMathTables(Ppu* ppu) {
   }
 #endif
   for(int m = 0; m < 256; ++m) {
-    const uint16_t cm = ppu->cgram[m];
+    const uint16_t cm = ta_panel_color(ppu->cgram,m,ppu->mode);
     const int mr = cm & 0x1f;
     const int mg = (cm >> 5) & 0x1f;
     const int mb = (cm >> 10) & 0x1f;
@@ -2260,7 +2263,7 @@ static inline void ppu_xboxBuildSubMathTables(Ppu* ppu) {
 #if !defined(TA_R26_COMPACT_SUBMATH) || !TA_R26_COMPACT_SUBMATH
     uint32_t* row = &s_mode1SubMathXrgb[m << 8];
     for(int sub = 0; sub < 256; ++sub) {
-      const uint16_t cs = ppu->cgram[sub];
+      const uint16_t cs = ta_panel_color(ppu->cgram,sub,ppu->mode);
       int r = ppu->subtractColor ? mr - (cs & 0x1f) : mr + (cs & 0x1f);
       int g = ppu->subtractColor ? mg - ((cs >> 5) & 0x1f) : mg + ((cs >> 5) & 0x1f);
       int b = ppu->subtractColor ? mb - ((cs >> 10) & 0x1f) : mb + ((cs >> 10) & 0x1f);
@@ -2285,8 +2288,8 @@ static inline uint32_t ppu_taR26SubMathColor(const Ppu* ppu, int mainPixel, int 
   TaR32ColorPair* e=&s_taR32ColorPairs[(pair*0x9e3779b1u)>>22];
   if(e->tag==tag)return e->color;
 #endif
-  const uint16_t a = ppu->cgram[mainPixel];
-  const uint16_t b = ppu->cgram[subPixel];
+  const uint16_t a = ta_panel_color(ppu->cgram,mainPixel,ppu->mode);
+  const uint16_t b = ta_panel_color(ppu->cgram,subPixel,ppu->mode);
   const uint8_t* const ch = s_taR26MathChannel;
   const uint32_t color = (uint32_t)ch[((a >> 10 & 31) << 5) | (b >> 10 & 31)] |
          ((uint32_t)ch[((a >> 5 & 31) << 5) | (b >> 5 & 31)] << 8) |
@@ -3651,7 +3654,7 @@ ppu_taR34WindowOutput(const Ppu* ppu, uint32_t* out, unsigned stride) {
     defined(TA_R26_COMPACT_SUBMATH) && TA_R26_COMPACT_SUBMATH && \
     defined(TA_R17_WINDOW_BITSETS) && TA_R17_WINDOW_BITSETS
 static inline uint32_t ppu_taR85BlackSubMath(const Ppu* ppu,unsigned sub) {
-  const uint16_t c=ppu->cgram[sub];
+  const uint16_t c=ta_panel_color(ppu->cgram,sub,ppu->mode);
   const uint8_t* ch=s_taR26MathChannel;
   return (uint32_t)ch[(c>>10)&31u] |
       ((uint32_t)ch[(c>>5)&31u]<<8) |
@@ -4141,7 +4144,7 @@ static void ppu_xboxMode1RenderLine(Ppu* ppu, int y) {
     if(!(ppu->clipMode == 3 ||
          (ppu->clipMode == 2 && colorWindowState) ||
          (ppu->clipMode == 1 && !colorWindowState))) {
-      const uint16_t c = ppu->cgram[mainPixel];
+      const uint16_t c = ta_panel_color(ppu->cgram,mainPixel,ppu->mode);
       r = c & 0x1f;
       g = (c >> 5) & 0x1f;
       b = (c >> 10) & 0x1f;
@@ -4157,7 +4160,7 @@ static void ppu_xboxMode1RenderLine(Ppu* ppu, int y) {
     if(mathEnabled && ppu->addSubscreen) {
       const int subPixel = s_mode1ReadSubPix[x];
       secondLayer = subPixel ? s_mode1ReadSubLayer[x] : 5;
-      const uint16_t c2 = ppu->cgram[subPixel];
+      const uint16_t c2 = ta_panel_color(ppu->cgram,subPixel,ppu->mode);
       r2 = c2 & 0x1f;
       g2 = (c2 >> 5) & 0x1f;
       b2 = (c2 >> 10) & 0x1f;
@@ -4600,7 +4603,7 @@ static int ppu_getPixel(Ppu* ppu, int x, int y, bool sub, int* r, int* g, int* b
     *g = ((pixel & 0x38) >> 1) | ((pixel & 0x200) >> 8);
     *b = ((pixel & 0xc0) >> 3) | ((pixel & 0x400) >> 8);
   } else {
-    uint16_t color = ppu->cgram[pixel & 0xff];
+    uint16_t color = ta_panel_color(ppu->cgram,pixel & 0xff,ppu->mode);
     *r = color & 0x1f;
     *g = (color >> 5) & 0x1f;
     *b = (color >> 10) & 0x1f;

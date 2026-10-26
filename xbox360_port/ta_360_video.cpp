@@ -1,4 +1,5 @@
 #include "ta_360_platform.h"
+#include "ta_music.h"
 #include <d3dx9.h>
 extern "C" {
 #include "ppu.h"
@@ -97,13 +98,13 @@ static void present(const uint32_t*p,unsigned height){
  }
  device->Present(NULL,NULL,NULL,NULL);
 }
-extern "C" void TA_Video_Submit(const unsigned char*p){present((const uint32_t*)p,480);}
-extern "C" bool TA_Video_SubmitActive224(const unsigned char*p){present((const uint32_t*)p,224);return device!=NULL;}
+extern "C" void TA_Video_Submit(const unsigned char*p){TA_Music_MenuFrame();present((const uint32_t*)p,480);}
+extern "C" bool TA_Video_SubmitActive224(const unsigned char*p){TA_Music_SetScene(TA_MUSIC_GAME);present((const uint32_t*)p,224);return device!=NULL;}
 extern "C" bool TA_Video_ActiveAvailable(void){return device!=NULL;}
-extern "C" bool TA_Video_SubmitActive224Direct(const Ppu*p){static uint32_t pixels[512*224];if(!ppu_taCopyActive224(p,(uint8_t*)pixels,sizeof pixels))return false;return TA_Video_SubmitActive224((const unsigned char*)pixels);}
+extern "C" bool TA_Video_SubmitActive224Direct(const Ppu*p){TA_Music_SetScene(TA_MUSIC_GAME);static uint32_t pixels[512*224];if(!ppu_taCopyActive224(p,(uint8_t*)pixels,sizeof pixels))return false;return TA_Video_SubmitActive224((const unsigned char*)pixels);}
 /* NV2A-specific acceleration selects the portable PPU renderer on Xenos. */
-extern "C" bool TA_Video_SubmitNative224Direct(const Ppu*){return false;}
-extern "C" void TA_Video_BeginR126(Ppu*){}
+extern "C" bool TA_Video_SubmitNative224Direct(const Ppu*){TA_Music_SetScene(TA_MUSIC_GAME);return false;}
+extern "C" void TA_Video_BeginR126(Ppu*){TA_Music_SetScene(TA_MUSIC_GAME);}
 extern "C" bool TA_Video_EndR126(Ppu*){return false;}
 extern "C" void TA_Video_ReleaseLanPpu(Ppu*){sceneValid=false;}
 extern "C" void TA_Video_R126Counts(unsigned long out[4]){memset(out,0,4*sizeof *out);}

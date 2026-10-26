@@ -1,4 +1,5 @@
 #include "ta_pc_internal.h"
+#include "ta_options.h"
 #include <SDL3/SDL_main.h>
 #include <commdlg.h>
 #include <mmsystem.h>
@@ -40,11 +41,11 @@ int WINAPI WinMain(HINSTANCE,HINSTANCE,LPSTR,int){
  SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_APPLICATION_DIR|LOAD_LIBRARY_SEARCH_SYSTEM32);
  SDL_SetMainReady();bool winsock=false,timer=false;int result=0;
  try{
-  SDL_SetAppMetadata("Dino Block Stacker","1.1.8","org.dinoblockstacker.pc");if(!SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_GAMEPAD))throw std::runtime_error(SDL_GetError());
-  pcStorageInit();WSADATA data;if(WSAStartup(MAKEWORD(2,2),&data))throw std::runtime_error("Windows networking initialization failed.");winsock=true;timer=timeBeginPeriod(1)==TIMERR_NOERROR;
+  SDL_SetAppMetadata("Dino Block Stacker","1.2.5","org.dinoblockstacker.pc");if(!SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_GAMEPAD))throw std::runtime_error(SDL_GetError());
+  pcStorageInit();TA_Options_Init(TA_PC_SaveDirectory());WSADATA data;if(WSAStartup(MAKEWORD(2,2),&data))throw std::runtime_error("Windows networking initialization failed.");winsock=true;pcNetworkInit();timer=timeBeginPeriod(1)==TIMERR_NOERROR;
   if(FAILED(TA_Video_Init()))throw std::runtime_error(SDL_GetError());TA_Input_Init();if(FAILED(TA_Audio_Init()))message("Audio output is unavailable. The game will continue without sound.",SDL_MESSAGEBOX_WARNING);
   std::vector<uint8_t> rom;fs::path requested;int argc=0;LPWSTR*argv=CommandLineToArgvW(GetCommandLineW(),&argc);
-  if(argv){for(int i=1;i<argc;i++)if(wcscmp(argv[i],L"--rom")==0&&i+1<argc)requested=argv[++i];LocalFree(argv);}
+  if(argv){for(int i=1;i<argc;i++)if(wcscmp(argv[i],L"--rom")==0&&i+1<argc)requested=argv[++i];else if(wcscmp(argv[i],L"--frame-timings")==0)pcSetFrameTimings(true);LocalFree(argv);}
   bool ready=false;if(!requested.empty()){ready=readRom(requested,rom);if(!ready)message("The file supplied with --rom is not the supported game ROM.");}
   if(!ready)ready=readRom(fs::path(pcWide(TA_PC_SaveDirectory()))/L"game.sfc",rom);if(!ready)ready=readRom(fs::path(pcWide(SDL_GetBasePath()))/L"game.sfc",rom);if(!ready)ready=importRom(rom);
   while(ready){try{TA_LanGame_Run(rom.data(),(unsigned)rom.size());TA_PC_FrontendClose();TA_Video_SetPartyVisual(NULL);TA_Video_SetLanOverlay(NULL,0);Offline game(rom);game.run();}
@@ -52,5 +53,5 @@ int WINAPI WinMain(HINSTANCE,HINSTANCE,LPSTR,int){
   }
  }catch(PcRequest){/* Closing the window also exits startup and text entry. */}
  catch(const std::exception&e){message(e.what());result=1;}
- TA_PC_ShutdownFrontend();pcSaveWindow();TA_Audio_Shutdown();TA_Input_Shutdown();TA_Video_Shutdown();if(timer)timeEndPeriod(1);if(winsock)WSACleanup();SDL_Quit();return result;
+ TA_PC_ShutdownFrontend();pcSaveWindow();TA_Audio_Shutdown();TA_Input_Shutdown();TA_Video_Shutdown();if(timer)timeEndPeriod(1);pcNetworkShutdown();if(winsock)WSACleanup();SDL_Quit();return result;
 }

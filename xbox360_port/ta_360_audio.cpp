@@ -1,5 +1,6 @@
 #include "ta_360_platform.h"
 #include <xaudio2.h>
+#include "ta_music_impl.h"
 static IXAudio2*engine;
 static IXAudio2MasteringVoice*master;
 static IXAudio2SourceVoice*voice;
@@ -14,6 +15,7 @@ struct AudioCallback:IXAudio2VoiceCallback{
 };
 static AudioCallback callback;
 extern "C" HRESULT TA_Audio_Init(void){
+ TA_Music_Init("game:\\music");
  completed=CreateEvent(NULL,FALSE,FALSE,NULL);if(!completed)return E_FAIL;
  HRESULT hr=XAudio2Create(&engine);if(FAILED(hr))return hr;
  hr=engine->CreateMasteringVoice(&master,2,48000);if(FAILED(hr))return hr;
@@ -22,7 +24,7 @@ extern "C" HRESULT TA_Audio_Init(void){
  return voice->Start(0);
 }
 extern "C" void TA_Audio_Submit(const int16_t*data){
- if(!voice||!data)return;
+ if(!voice||!data)return;static int16_t mixed[1600];if(!TA_Music_Process(data,mixed,800))return;data=mixed;
  AudioSlot*slot=NULL;for(unsigned i=0;i<6;i++)if(InterlockedCompareExchange(&slots[i].busy,1,0)==0){slot=slots+i;break;}
  /* Never overwrite audio still owned by the mixer, and never block networking. */
  if(!slot)return;
@@ -31,5 +33,6 @@ extern "C" void TA_Audio_Submit(const int16_t*data){
  if(FAILED(voice->SubmitSourceBuffer(&buffer)))InterlockedExchange(&slot->busy,0);
 }
 extern "C" void TA_Audio_Shutdown(void){
+ TA_Music_Shutdown();
  if(voice){voice->Stop();voice->DestroyVoice();voice=NULL;}if(master){master->DestroyVoice();master=NULL;}if(engine){engine->Release();engine=NULL;}if(completed){CloseHandle(completed);completed=NULL;}
 }

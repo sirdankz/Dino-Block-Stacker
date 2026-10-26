@@ -1,4 +1,5 @@
 #include "ta_360_platform.h"
+#include "ta_music.h"
 #include "ta_controls_impl.h"
 static void (*backgroundTick)(void);
 static int rightX,rightY;
@@ -9,7 +10,7 @@ extern "C" void TA_Input_RightStick(int*x,int*y){*x=rightX;*y=rightY;}
 extern "C" void TA_Input_SetLeaderboard(unsigned){}
 extern "C" int TA_Input_LeaderboardScroll(void){return 0;}
 extern "C" unsigned TA_Input_LeaderboardActions(void){return 0;}
-extern "C" void TA_Input_Poll(uint16_t out[2]){
+extern "C" void TA_Input_Poll(uint16_t out[2]){TA_Music_MenuFrame();
  if(backgroundTick)backgroundTick();out[0]=out[1]=0;rightX=rightY=0;
  /* Physical controller indices stay stable when a controller disconnects. */
  for(unsigned slot=0;slot<2;slot++){
