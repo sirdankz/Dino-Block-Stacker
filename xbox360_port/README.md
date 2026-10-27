@@ -4,7 +4,7 @@ PowerPC/Xenos platform adapter for the shared Dino Block Stacker client. The sha
 
 ## Features
 
-The port enables the supplied animated menu artwork, original offline modes, two local controllers with custom bindings, LAN and ranked 1v1, online parties of two to four players, Auto and Focus junk targeting, real remote boards, local character backdrops, account profiles, lobby/world chat, both leaderboards, six egg ranks, rematches, speed requests, host transfer, and population counters.
+The port enables the supplied animated menu artwork, original offline modes, two local controllers with custom bindings, LAN and ranked 1v1, online parties of two to four players, Auto Target and Manual Target junk targeting, real remote boards, local character backdrops, account profiles, lobby/world chat, both leaderboards, six egg ranks, rematches, speed requests, host transfer, and population counters.
 
 The console uses gamepad navigation and the shared console board layout. Android touch controls and its Android layout editor remain platform-specific.
 

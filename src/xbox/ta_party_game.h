@@ -214,12 +214,12 @@ static void runParty(const uint8_t*rom,unsigned bytes,uint32_t joinRoom=0,int ho
   if(!party.room){unsigned total=party.roomCount+3;choice=menuMove(choice,total,pressed);
    if(pressed&1){if(choice==0||choice==1)ta_vs_party_host(&party,sharedSpeed,choice);else if(choice==total-1)break;else ta_vs_party_join(&party,party.rooms[choice-2].id);}
    unsigned first=choice>5?choice-5:0;for(unsigned row=0;row<6&&first+row<total;row++){unsigned i=first+row;char label[64];
-    if(i<2)strcpy(label,i?"HOST FOCUS PARTY":"HOST AUTO PARTY");else if(i==total-1)strcpy(label,"BACK");else{TaPartyRoom*r=party.rooms+i-2;snprintf(label,sizeof label,"%06lu %s %u/4 %s",(unsigned long)r->id,r->name,(unsigned)r->count,r->mode?"FOCUS":"AUTO");}menuRow(160+row*36,label,choice==i,2);}
+    if(i<2)strcpy(label,i?"HOST MANUAL TARGET":"HOST AUTO TARGET");else if(i==total-1)strcpy(label,"BACK");else{TaPartyRoom*r=party.rooms+i-2;snprintf(label,sizeof label,"%06lu %s %u/4 %s",(unsigned long)r->id,r->name,(unsigned)r->count,r->mode?"MANUAL TARGET":"AUTO TARGET");}menuRow(160+row*36,label,choice==i,2);}
    accountFooter("D-PAD MOVE  A SELECT  B BACK",party.haveCookie?"RELAY CONNECTED":"CONNECTING TO PARTY RELAY");
   }else{
    partySpeedInput(pressed);if(ta_lobby_ready_pressed(pressed)){party.flags^=1u;party.requestSent=0;}
    if(ta_lobby_party_can_start(party.phase,party.self,party.host,party.members,party.present,party.ready,party.flags,party.start,party.speedRequest)){party.start=1;party.requestSent=0;}
-   char text[64];snprintf(text,sizeof text,"ROOM %06lu  %s  SPEED %u",(unsigned long)party.room,party.mode?"FOCUS":"AUTO",(unsigned)party.speed);ta_vs_lan_text_box(screen,96,158,320,14,text,uiGold,2);partyTouchSpeed();
+   char text[64];snprintf(text,sizeof text,"ROOM %06lu  %s  SPEED %u",(unsigned long)party.room,party.mode?"MANUAL TARGET":"AUTO TARGET",(unsigned)party.speed);ta_vs_lan_text_box(screen,96,158,320,14,text,uiGold,2);partyTouchSpeed();
    for(unsigned s=0;s<4;s++){snprintf(text,sizeof text,"%u %-8s %s%s",s+1,party.members&(1u<<s)?party.names[s]:"OPEN",party.ready&(1u<<s)?"READY":"WAITING",s==party.host?" HOST":"");ta_menu_text(screen,58,185+s*40,text,s==party.self?uiGold:uiText,2);}
    if(party.mode){ta_menu_text(screen,44,345,"HIGHLIGHT WHO RECEIVES YOUR JUNK",uiGold,2);char hint[80];snprintf(hint,sizeof hint,"RIGHT STICK OR %s",controlPhysical(TA_Controls_Get(0,7)));ta_menu_text(screen,44,366,hint,uiMuted,2);}
    for(unsigned seat=0;seat<4;seat++)if(party.speedRequests[seat]){snprintf(text,sizeof text,"SPEED %u?",party.speedRequests[seat]);ta_menu_text(screen,350,202+seat*40,text,uiGold,2);}

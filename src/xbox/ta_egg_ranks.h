@@ -1,5 +1,6 @@
 /* Rank artwork shared by the Original Xbox and Android menus. */
-static unsigned eggTier(unsigned r){return r<1000?0:r<1200?1:r<1400?2:r<1600?3:r<1800?4:5;}
+#include "ta_vs_rank.h"
+static unsigned eggTier(unsigned r){return ta_rank_tier(r);}
 static const char*eggShort(unsigned r){static const char*n[]={"ROTTEN","BRONZE","SILVER","GOLD","PLAT","MASTER"};return n[eggTier(r)];}
 #include "ta_egg_sprites34.h"
 static void eggEmblem(int x,int y,unsigned rating,unsigned scale){

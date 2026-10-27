@@ -10,8 +10,12 @@ The application does **not** include the original game ROM, graphics, characters
 - Original menu/results music by sirdankz
 - Offline play and LAN multiplayer
 - Pixel-art(Made by Galactusx) menu frames with a scrolling tiled background, trophy animated sprite, & leaderboards
+- Events with local time-zone conversion, recurring schedules and interested-player lists
+- Public profiles with Discord usernames, weekly availability and a saved 12/24-hour clock format
+- Separate 1v1 and party leaderboards with six egg ranks and next-rank progress
 - Online accounts, in-game and online population counters
-- Lobby and world chat in waiting rooms, with a dedicated chat shortcut in Browse Rooms
+- Lobby and world chat with blue usernames, compact text, scrolling history and sender profiles
+- Browse Rooms and waiting-room chat shortcuts; 2-4 player Auto Target and Manual Target rooms
 - Direct tapping and swipe navigation for Android menus
 - Xbox world-chat shortcuts: START send, X delete, Y space, L/R jump to SPACE/SEND
 - Gamepad support on all four platforms and on-screen controls on Android
@@ -30,12 +34,12 @@ Prebuilt releases are available from the repository's **Releases** page:
 
 | Platform | Release file |
 | --- | --- |
-| Original Xbox ZIP | `DinoBlockStacker-v1.2.5-Xbox-NoLog.zip` |
-| Android | `DinoBlockStacker-v1.2.5.apk` |
+| Original Xbox ZIP | `DinoBlockStacker-v1.2.9-Xbox.zip` |
+| Android | `DinoBlockStacker-v1.2.9.apk` |
 | Original Xbox executable | `default.xbe` |
-| Xbox 360 ZIP | `DinoBlockStacker-v1.2.5-Xbox360-NoLog.zip` |
+| Xbox 360 ZIP | `DinoBlockStacker-v1.2.9-Xbox360.zip` |
 | Xbox 360 executable | `default.xex` |
-| Windows PC ZIP | `DinoBlockStacker-v1.2.5-Windows-x64-NoLog.zip` |
+| Windows PC ZIP | `DinoBlockStacker-v1.2.9-Windows-x64.zip` |
 | Source archive | GitHub source archives |
 
 Keep the packaged `music/` folder beside the desktop/console executable for the menu and results soundtrack. Android includes both tracks in the APK.
@@ -76,7 +80,7 @@ DinoBlockStacker/
 ```
 Profiles, settings, bindings, and caches use `DinoBlockStacker360Data` beside the game when writable. On Xenia or read-only game mounts, they use the normal Xbox saved-game container under the configured content directory. No Xenia write-permission setting change is required.
 
-The Xbox 360 port shares the console menus and board layouts. RB cycles junk targets; the right stick selects a Focus target. Hold BACK+START during offline play to return to the menus.
+The Xbox 360 port shares the console menus and board layouts. RB cycles junk targets; the right stick selects a manual target. Hold BACK+START during offline play to return to the menus.
 
 ### Android
 

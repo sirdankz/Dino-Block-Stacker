@@ -82,25 +82,33 @@ public final class GameActivity extends Activity implements InputManager.InputDe
     @Override protected void onResume(){super.onResume();if(surface!=null)surface.onResume();nativePause(false);AudioTrack a=audio;if(a!=null)try{a.play();}catch(RuntimeException ignored){}}
     @Override protected void onPause(){MenuMusicPlayer.stop();nativePause(true);releaseInputs();AudioTrack a=audio;if(a!=null)try{a.pause();a.flush();}catch(RuntimeException ignored){}if(surface!=null)surface.onPause();super.onPause();}
     @Override protected void onDestroy(){cancelChatInput();nativeStop();input.unregisterInputDeviceListener(this);if(gameThread!=null)try{gameThread.join(1500);}catch(InterruptedException e){Thread.currentThread().interrupt();}AudioTrack a=audio;audio=null;if(a!=null)a.release();if(multicast!=null&&multicast.isHeld())multicast.release();super.onDestroy();}
-    @SuppressWarnings("unused") private void beginChatInput(String title){
+    @SuppressWarnings("unused") private void beginChatInput(String title,int maximum){
         chatResult=null;chatPending=true;
         runOnUiThread(()->{
             if(!chatPending||isFinishing()||isDestroyed()){chatResult="";chatPending=false;return;}
-            int generation=++chatGeneration;
-            EditText field=new EditText(this);field.setSingleLine(true);field.setHint("Message (32 characters)");
+            int generation=++chatGeneration;boolean message=title.toLowerCase(java.util.Locale.ROOT).contains("chat");
+            EditText field=new EditText(this);field.setSingleLine(true);field.setHint((message?"Message":"Text")+" ("+maximum+" characters)");
             android.text.InputFilter ascii=(source,start,end,dest,dstart,dend)->{
                 for(int i=start;i<end;i++)if(source.charAt(i)<32||source.charAt(i)>126)return "";return null;
             };
-            field.setFilters(new android.text.InputFilter[]{ascii,new android.text.InputFilter.LengthFilter(32)});
+            field.setFilters(new android.text.InputFilter[]{ascii,new android.text.InputFilter.LengthFilter(Math.max(1,Math.min(48,maximum)))});
             field.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
             field.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEND);
             FrameLayout wrap=new FrameLayout(this);int margin=(int)(24*getResources().getDisplayMetrics().density);
             wrap.setPadding(margin,0,margin,0);wrap.addView(field);
             chatDialog=new AlertDialog.Builder(this).setTitle(title).setView(wrap)
-                .setPositiveButton("Send",null).setNegativeButton("Cancel",(d,w)->{}).create();
+                .setPositiveButton(message?"Send":"Done",null).setNegativeButton("Cancel",(d,w)->{}).create();
             AlertDialog dialog=chatDialog;
-            Runnable send=()->{String value=field.getText().toString().trim();if(value.isEmpty()){field.setError("Enter a message");return;}if(chatGeneration==generation)chatResult=value;dialog.dismiss();};
+            Runnable send=()->{String value=field.getText().toString().trim();if(value.isEmpty()){field.setError("Enter text");return;}if(chatGeneration==generation)chatResult=value;dialog.dismiss();};
             dialog.setOnDismissListener(d->{if(chatGeneration==generation){if(chatResult==null)chatResult="";chatPending=false;chatDialog=null;}immersive();});
+            dialog.setOnKeyListener((d,key,event)->{
+                if(key!=KeyEvent.KEYCODE_BUTTON_Y)return false;
+                if(event.getAction()==KeyEvent.ACTION_DOWN&&event.getRepeatCount()==0){
+                    int a=Math.max(0,field.getSelectionStart()),b=Math.max(0,field.getSelectionEnd());
+                    field.getText().replace(Math.min(a,b),Math.max(a,b)," ");
+                }
+                return true;
+            });
             dialog.show();dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->send.run());
             field.setOnEditorActionListener((v,action,event)->{if(action==android.view.inputmethod.EditorInfo.IME_ACTION_SEND){send.run();return true;}return false;});
             field.requestFocus();dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);

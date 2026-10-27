@@ -4,7 +4,9 @@
 #define TA_N22_SOCIAL_H
 
 typedef struct {uint32_t id;char name[17];char text[33];} TaSocialLine;
-static TaSocialLine taSocialLines[4];
+static TaSocialLine taSocialLines[256];
+static unsigned taSocialFirst,taSocialSelected,taSocialPollMode;
+static bool taSocialOlder,taSocialNoOlder;
 static unsigned taSocialLineCount,taSocialAccounts,taSocialInGame,taSocialOnline,taSocialCountKnown;
 static uint32_t taSocialLastId,taSocialRequestAt,taSocialCountsAt,taSocialChatAt;
 static unsigned taSocialCommand;
@@ -15,7 +17,7 @@ static unsigned taSocialRoomKind;
 static uint32_t taSocialRoomId;
 static uint64_t taSocialRoomNonce;
 static int taSocialPump(void){int error=pump(false);return error?error:taSocialExtraTick?taSocialExtraTick():0;}
-static unsigned taSocialPollCommand(void){return taSocialLobbyChannel?TA_ACCOUNT_LOBBY_POLL:TA_ACCOUNT_CHAT_POLL;}
+static unsigned taSocialPollCommand(void){return TA_COMMUNITY_COMMAND;}
 static unsigned taSocialSendCommand(void){return taSocialLobbyChannel?TA_ACCOUNT_LOBBY_SEND:TA_ACCOUNT_CHAT_SEND;}
 static void taSocialW32(uint8_t*,uint32_t);
 static unsigned taSocialRoomHeader(uint8_t*p){p[0]=(uint8_t)taSocialRoomKind;taSocialW32(p+1,taSocialRoomId);for(unsigned k=0;k<8;k++)p[12-k]=(uint8_t)(taSocialRoomNonce>>(8*k));return 13;}
@@ -46,16 +48,22 @@ static void taSocialTick(uint32_t now,bool counts){
     taSocialAccounts=taSocialU32(b+2);taSocialInGame=taSocialU32(b+6);
     taSocialOnline=taSocialU32(b+10);taSocialCountKnown=1;TA_Video_SetPopulation(taSocialAccounts,taSocialInGame,taSocialOnline,1);
    }else if(taSocialCommand==taSocialPollCommand() && n>=3){
-    unsigned count=b[2];if(count<=4&&n==3+count*52){
+    unsigned count=b[2];if(count<=9&&n==3+count*52){
+     bool follow=!taSocialLineCount||taSocialSelected+1==taSocialLineCount;
+     if(taSocialPollMode==2&&count<9)taSocialNoOlder=true;
      for(unsigned i=0;i<count;i++){
-      const uint8_t*e=b+3+i*52;uint32_t id=taSocialU32(e);
-      if(id<=taSocialLastId)continue;
-      TaSocialLine *m;
-      if(taSocialLineCount==4){memmove(taSocialLines,taSocialLines+1,3*sizeof taSocialLines[0]);m=taSocialLines+3;}
-      else m=taSocialLines+taSocialLineCount++;
-      m->id=id;memcpy(m->name,e+4,16);m->name[16]=0;
-      memcpy(m->text,e+20,32);m->text[32]=0;taSocialLastId=id;
+      const uint8_t*e=b+3+i*52;uint32_t id=taSocialU32(e);TaSocialLine line;line.id=id;
+      if(!id||!ta_community_string(line.name,e+4,16)||!ta_community_string(line.text,e+20,32))continue;
+      unsigned pos=0;while(pos<taSocialLineCount&&taSocialLines[pos].id<id)++pos;
+      if(pos<taSocialLineCount&&taSocialLines[pos].id==id)continue;
+      if(taSocialLineCount==256){if(!pos)continue;memmove(taSocialLines,taSocialLines+1,255*sizeof taSocialLines[0]);--taSocialLineCount;--pos;if(taSocialFirst)--taSocialFirst;if(taSocialSelected)--taSocialSelected;}
+      memmove(taSocialLines+pos+1,taSocialLines+pos,(taSocialLineCount-pos)*sizeof taSocialLines[0]);taSocialLines[pos]=line;++taSocialLineCount;
+      if(pos<=taSocialSelected&&taSocialLineCount>1)++taSocialSelected;
+      if(pos<=taSocialFirst&&taSocialLineCount>1)++taSocialFirst;
+      if(id>taSocialLastId)taSocialLastId=id;
      }
+     if(follow&&taSocialPollMode!=2){taSocialSelected=taSocialLineCount?taSocialLineCount-1:0;taSocialFirst=taSocialLineCount>TA_COMMUNITY_CHAT_VISIBLE?taSocialLineCount-TA_COMMUNITY_CHAT_VISIBLE:0;}
+     if(count==9&&taSocialPollMode==1)taSocialChatAt=now-1200u;
     }
    }
    else if(taSocialCommand==taSocialSendCommand())strcpy(taSocialNotice,"MESSAGE SENT");
@@ -70,8 +78,12 @@ static void taSocialTick(uint32_t now,bool counts){
   if(counts){if(!taSocialCountsAt||(uint32_t)(now-taSocialCountsAt)>10000){
     taSocialCountsAt=now;taSocialBegin(TA_ACCOUNT_COUNTS,NULL,0,now);
    }}else if(!taSocialChatAt||(uint32_t)(now-taSocialChatAt)>1400){
-   uint8_t after[17];unsigned offset=taSocialLobbyChannel?taSocialRoomHeader(after):0;taSocialW32(after+offset,taSocialLastId);taSocialChatAt=now;
-   taSocialBegin(taSocialPollCommand(),after,offset+4,now);
+   uint8_t request[19]={10,0,0};unsigned mode=taSocialOlder?2:taSocialLastId?1:0;
+   request[1]=(uint8_t)mode;request[2]=(uint8_t)(taSocialLobbyChannel?taSocialRoomKind:0);
+   if(taSocialLobbyChannel){taSocialW32(request+3,taSocialRoomId);for(unsigned k=0;k<8;k++)request[14-k]=(uint8_t)(taSocialRoomNonce>>(8*k));}
+   taSocialW32(request+15,mode==2&&taSocialLineCount?taSocialLines[0].id:taSocialLastId);
+   taSocialPollMode=mode;taSocialOlder=false;taSocialChatAt=now;
+   taSocialBegin(taSocialPollCommand(),request,sizeof request,now);
   }
  }
 }
@@ -98,7 +110,7 @@ static bool taSocialXboxKeyboard(char out[33]){
  unsigned selected=0,len=0;char value[33]={0};
  TaMenuPad pad;menuBegin(&pad);
  for(;;){
-  unsigned pressed=menuRead(&pad);if(taSocialPump()||pressed&0x100)return false;
+  unsigned pressed=menuRead(&pad);if(taSocialPump()||pressed&0x100)return false;if(menuTouchKey<44)selected=menuTouchKey;
   selected=taSocialKeyMove(selected,pressed);
   /* Shortcuts: X delete; Y space; Start send; L/R jump to space/send.
      A on the last two on-screen keys is an equally accessible alternative. */
@@ -113,6 +125,7 @@ static bool taSocialXboxKeyboard(char out[33]){
   ta_menu_text(screen,43,157,value[0]?value:"TYPE YOUR MESSAGE...",value[0]?uiText:uiMuted,2);
   for(unsigned k=0;k<44;k++){
    const unsigned x=48+(k%8)*54,y=204+(k/8)*30;
+   menuTouchAction(x-6,y-7,52,27,0x1000001u|(k<<16));
    if(k==selected)accountHighlight((int)x-6,(int)y-7,52,27);
    char ch[2]={k<42?keys[k]:' ',0};
    const char*label=k==42?"DEL":k==43?"SEND":k==38?"SPACE":ch;
@@ -132,7 +145,7 @@ static bool taSocialInput(char out[33]){
 #endif
 }
 static void taSocialHistoryReset(void){
- taSocialCancel();taSocialLastId=0;taSocialLineCount=0;taSocialChatAt=0;
+ taSocialCancel();taSocialLastId=0;taSocialLineCount=0;taSocialChatAt=0;taSocialFirst=taSocialSelected=0;taSocialOlder=taSocialNoOlder=false;
  strcpy(taSocialNotice,"CHAT READY - AUTO REFRESH");
 }
 static void taSocialChatView(void){
@@ -140,6 +153,14 @@ static void taSocialChatView(void){
  for(;;){unsigned pressed=menuRead(&pad);if(taSocialPump())break;
   if(pressed&0x100)break;
   if((pressed&2u)&&taSocialRoomKind){taSocialLobbyChannel=!taSocialLobbyChannel;taSocialHistoryReset();menuBegin(&pad);continue;}
+  int movement=menuTouchDelta;menuTouchDelta=0;if(pressed&0x10)--movement;if(pressed&0x20)++movement;
+  if(pressed&0x40)movement-=(int)TA_COMMUNITY_CHAT_VISIBLE;if(pressed&0x80)movement+=(int)TA_COMMUNITY_CHAT_VISIBLE;
+  if(movement<0&&taSocialSelected<(unsigned)-movement&&!taSocialNoOlder&&taSocialLineCount){taSocialOlder=true;taSocialChatAt=0;}
+  if(taSocialLineCount){int next=(int)taSocialSelected+movement;taSocialSelected=next<0?0:next>=(int)taSocialLineCount?taSocialLineCount-1:(unsigned)next;
+   if(taSocialSelected<taSocialFirst)taSocialFirst=taSocialSelected;
+   if(taSocialSelected>=taSocialFirst+TA_COMMUNITY_CHAT_VISIBLE)taSocialFirst=taSocialSelected-TA_COMMUNITY_CHAT_VISIBLE+1;
+  }
+  if((pressed&0x200u)&&taSocialLineCount){char name[17];strcpy(name,taSocialLines[taSocialSelected].name);taSocialCancel();int(*old)(void)=accountMenuExtraTick;accountMenuExtraTick=taSocialExtraTick;communityProfileView(name);accountMenuExtraTick=old;menuBegin(&pad);}
   taSocialTick(GetTickCount(),false);if(!accountAuthenticated)break;
   if((pressed&1u)&&!(taSocialCommand==taSocialSendCommand()&&accountLink.pending)){
    taSocialCancel();char message[33]={0};
@@ -150,12 +171,16 @@ static void taSocialChatView(void){
    memset(message,0,sizeof message);taSocialChatAt=0;menuBegin(&pad);
   }
   accountFrame(taSocialLobbyChannel?"LOBBY CHAT":"WORLD CHAT",ownProfile.name);
+  communityText(42,119,taSocialNotice,uiMuted);
   if(!taSocialLineCount)ta_menu_text(screen,44,174,"NO MESSAGES YET",uiMuted,2);
-  for(unsigned i=0;i<taSocialLineCount;i++){
-   unsigned y=160+i*59;ta_menu_text(screen,44,y,taSocialLines[i].name,uiGold,2);
-   ta_menu_text(screen,44,y+23,taSocialLines[i].text,uiText,2);
+  for(unsigned r=0;r<TA_COMMUNITY_CHAT_VISIBLE&&taSocialFirst+r<taSocialLineCount;r++){
+   unsigned i=taSocialFirst+r,y=160+r*16;bool chosen=i==taSocialSelected;
+   menuTouchChoice(36,(int)y-2,428,16,r,chosen);TA_Menu_Region(36,(int)y-2,142,16,(int)r,chosen?1u:0u,0x200u);if(chosen)accountHighlight(36,(int)y-2,428,15);
+   communityText(42,y,taSocialLines[i].name,0x6bb8ff);communityText(176,y,":",0x6bb8ff);communityText(190,y,taSocialLines[i].text,uiText);
   }
-  accountFooter(taSocialRoomKind?(taSocialLobbyChannel?"A WRITE  X WORLD  B BACK":"A WRITE  X LOBBY  B BACK"):"A WRITE  B BACK",taSocialNotice);
+  communityBar(taSocialFirst,TA_COMMUNITY_CHAT_VISIBLE,taSocialLineCount,158,224);
+  menuTouchAction(466,158,10,108,0x10);menuTouchAction(466,274,10,108,0x20);
+  accountFooter(taSocialRoomKind?(taSocialLobbyChannel?"A WRITE  X WORLD  Y PROFILE  B BACK":"A WRITE  X LOBBY  Y PROFILE  B BACK"):"A WRITE  Y PROFILE  B BACK","UP/DOWN OR SWIPE TO SCROLL CHAT");
  }
  taSocialCancel();
 }

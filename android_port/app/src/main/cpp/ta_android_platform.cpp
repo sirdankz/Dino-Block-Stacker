@@ -152,11 +152,11 @@ extern "C" JNIEXPORT jint JNICALL Java_org_dinoblockstacker_app_GameActivity_nat
 extern "C" int ta_android_chat_input(char*out,unsigned capacity,const char*title,int (*tick)(void)){
  if(!out||capacity<2||!gameEnv||!gameActivity||stopped)return 0;
  TA_Menu_Reset();JNIEnv*env=gameEnv;jclass cls=env->GetObjectClass(gameActivity);
- jmethodID begin=env->GetMethodID(cls,"beginChatInput","(Ljava/lang/String;)V");
+ jmethodID begin=env->GetMethodID(cls,"beginChatInput","(Ljava/lang/String;I)V");
  jmethodID poll=env->GetMethodID(cls,"pollChatText","()Ljava/lang/String;");
  jmethodID cancel=env->GetMethodID(cls,"cancelChatInput","()V");env->DeleteLocalRef(cls);
  if(!begin||!poll||!cancel||env->ExceptionCheck()){env->ExceptionClear();return 0;}
- jstring heading=env->NewStringUTF(title);env->CallVoidMethod(gameActivity,begin,heading);env->DeleteLocalRef(heading);
+ jstring heading=env->NewStringUTF(title);env->CallVoidMethod(gameActivity,begin,heading,(jint)(capacity-1));env->DeleteLocalRef(heading);
  unsigned count=0;
  for(;;){
   if(env->ExceptionCheck()){env->ExceptionClear();break;}

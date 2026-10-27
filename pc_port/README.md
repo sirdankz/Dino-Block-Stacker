@@ -1,12 +1,12 @@
 # Dino Block Stacker — Windows PC
 
-Windows x64 port, version 1.2.5. Windows 10 version 1903 or newer, or Windows 11.
+Windows x64 port, version 1.2.9. Windows 10 version 1903 or newer, or Windows 11.
 
 ## Features
 
 - Shared animated menus, supplied artwork, rank emblems and winner trophies
 - Original offline game modes and two-player local play
-- LAN 1v1, ranked online 1v1, and online 2–4-player Auto/Focus rooms
+- LAN 1v1, ranked online 1v1, and online 2–4-player Auto/Manual Target rooms
 - Real opponent boards, a centered local board in party modes, and the local character background
 - Accounts, persistent sign-in, independent 1v1/party leaderboards, and all six egg ranks
 - World/lobby chat, population counters, rematches, speed requests and host transfer
@@ -32,10 +32,10 @@ The shared menu retains its controller button labels. Menus also support clickin
 | Raise | X, Q or W | Keypad 3, 7 or 5 |
 | Start / offline pause | Enter or Escape | Keypad Enter |
 | Back / Select | Backspace or Tab | Keypad minus |
-| Cycle junk target | C | Keypad 0 |
+| TARGET (cycle junk recipient) | C | Keypad 0 |
 | Auxiliary / LB | E | Keypad divide |
 
-Gamepads use A to swap, X or triggers to raise, RB to cycle the junk target, and the right stick to select a Focus target. The in-game CONTROLS menu changes bindings independently for both players. Arbitrary keyboard keys can be assigned with SDL scancode names in `keyboard.ini`; changes apply on the next launch.
+Gamepads use A to swap, X or triggers to raise, RB to cycle the junk target, and the right stick to select a manual target. The in-game CONTROLS menu changes bindings independently for both players. Arbitrary keyboard keys can be assigned with SDL scancode names in `keyboard.ini`; changes apply on the next launch.
 
 - F5: START / ready in a lobby.
 - F11 or Alt+Enter: toggle fullscreen.

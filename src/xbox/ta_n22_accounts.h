@@ -1,5 +1,7 @@
 #include "ta_menu_touch.h"
 #include "ta_music.h"
+static int (*accountMenuExtraTick)(void);
+static void taCommunityInvalidate(void);
 /* N22 menus only. Account requests never run emulation or wait on live input. */
 #ifndef TA_N12_CACHE_DIR
 #define TA_N12_CACHE_DIR "U:\\00000001"
@@ -80,7 +82,7 @@ struct TaMenuMusicScope {
 static void accountFrame(const char*title,const char*sub){
  TA_Music_SetScene(taMenuMusicScene);
  TA_Menu_Begin(title);menuTouchRowIndex=0;
- ta_n17_backdrop();ta_menu_text(screen,36,34,"DINO BLOCK STACKER",0x007dd9e8,3);ta_menu_text(screen,406,34,"V1.2.5",uiMuted,2);ta_vs_lan_text_box(screen,36,65,440,24,title,uiText,4);
+ ta_n17_backdrop();ta_menu_text(screen,36,34,"DINO BLOCK STACKER",0x007dd9e8,3);ta_menu_text(screen,406,34,"V1.2.9",uiMuted,2);ta_vs_lan_text_box(screen,36,65,440,24,title,uiText,4);
  if(sub)ta_vs_lan_text_box(screen,36,97,440,32,sub,uiMuted,2);
  /* The shared skin already includes the content and footer surfaces. */
 }
@@ -102,14 +104,14 @@ static bool accountOpen(void){
  uint8_t key[32],secret[32];memcpy(key,ta_n17_account_key,sizeof key);
  if(XNetRandom(secret,sizeof secret)){strcpy(accountNotice,"ACCOUNT NETWORK SETUP FAILED");return false;}int result=ta_account_init(&accountLink,secret,key);memset(secret,0,sizeof secret);return result==0;
 }
-static const char*accountStatus(unsigned s){return s==2?"USERNAME ALREADY TAKEN":s==3?"SIGN IN FAILED - CHECK PASSWORD":s==4?"PLEASE WAIT THEN TRY AGAIN":s==5?"PLEASE SIGN IN FIRST":s==6?"MATCH NOT ELIGIBLE FOR RANKING":s==7?"WAITING FOR BOTH MATCH RESULTS":s==8?"RESULTS DISAGREE - STATS UNCHANGED":s==10?"MESSAGE BLOCKED - HATE SPEECH":s==11?"SLOW DOWN - TRY AGAIN":s==12?"INVALID CHAT MESSAGE":"CHECK NAME AND PASSWORD";}
+static const char*accountStatus(unsigned s){if(s==13)return "SET A TIME ZONE OR MANUAL DATE / TIME";if(s==19)return "ENTER YOUR CURRENT LOCAL DATE AND TIME";if(s==14)return "INVALID DATE OR DAYLIGHT-SAVING GAP";if(s==15)return "CHOOSE A FUTURE DATE WITHIN ONE YEAR";if(s==16)return "EVENT OR PLAYER NO LONGER AVAILABLE";if(s==17)return "ONLY THE ORGANIZER CAN CHANGE THIS EVENT";if(s==18)return "EVENT LIMIT REACHED - CANCEL AN OLD EVENT";return s==2?"USERNAME ALREADY TAKEN":s==3?"SIGN IN FAILED - CHECK PASSWORD":s==4?"PLEASE WAIT THEN TRY AGAIN":s==5?"PLEASE SIGN IN FIRST":s==6?"MATCH NOT ELIGIBLE FOR RANKING":s==7?"WAITING FOR BOTH MATCH RESULTS":s==8?"RESULTS DISAGREE - STATS UNCHANGED":s==10?"MESSAGE BLOCKED - HATE SPEECH":s==11?"SLOW DOWN - TRY AGAIN":s==12?"INVALID CHAT MESSAGE":"CHECK NAME AND PASSWORD";}
 static bool accountCall(unsigned command,const void*data,unsigned bytes,const char*label,bool quiet=false){
  accountLastStatus=-1;
  if(!accountLink.ready){strcpy(accountNotice,"UPDATE SERVER AND COPY ACCOUNT KEY");return false;}
  if(ta_account_request(&accountLink,&publicRoom,command,data,bytes)){strcpy(accountNotice,"CONNECTING - PLEASE TRY AGAIN");return false;}
  uint32_t start=GetTickCount();uint16_t pads[2];TA_Input_Poll(pads);uint16_t previous=pads[0];
  while(accountLink.pending&&(uint32_t)(GetTickCount()-start)<6000){
-  if(pump(false)){accountLink.pending=0;strcpy(accountNotice,"ROOM SERVER UNAVAILABLE");return false;}
+  if(pump(false)||(accountMenuExtraTick&&accountMenuExtraTick())){accountLink.pending=0;strcpy(accountNotice,"ROOM SERVER UNAVAILABLE");return false;}
   if(!accountLink.pending)break;
   TA_Input_Poll(pads);unsigned pressed=pads[0]&~previous;previous=pads[0];int ignoredTouch=0;pressed|=TA_Menu_Read(&ignoredTouch)&0x100u;if(pressed&0x100){accountLink.pending=0;accountLastStatus=-2;return false;}
   if(quiet)TA_Video_Submit((const uint8_t*)screen);else{accountFrame(label,"SECURE ACCOUNT CONNECTION");ta_menu_text(screen,44,230,"PLEASE WAIT",uiText,3);accountFooter("B CANCEL",NULL);}
@@ -194,7 +196,7 @@ static bool accountKeyboard(const char*title,const char*label,char*out,unsigned 
 }
 static bool accountAuthenticate(unsigned command,const char*name,const void*credential){
  uint8_t data[48]={0};memcpy(data,name,strlen(name));memcpy(data+16,credential,32);
- accountAuthenticated=false;
+ accountAuthenticated=false;taCommunityInvalidate();
  bool ok=accountCall(command,data,sizeof data,command==1?"CREATING PROFILE":"SIGNING IN",command==3);memset(data,0,sizeof data);if(!ok)return false;
  TaAccountProfile authenticatedProfile;if(accountLink.replyBytes!=78||ta_account_profile(&authenticatedProfile,accountLink.reply+34,44)){strcpy(accountNotice,"INVALID PROFILE RESPONSE");return false;}
  ownProfile=authenticatedProfile;unsigned index=profileCount;for(unsigned i=0;i<profileCount;i++)if(!strcmp(savedProfiles[i].name,ownProfile.name))index=i;
@@ -230,11 +232,12 @@ static void accountProfileMenu(void){
   accountFooter("D-PAD MOVE  A SELECT  B BACK","SAVED PROFILES SIGN IN AUTOMATICALLY");
  }
 }
+#include "ta_n22_community.h"
 static bool accountEnsure(void){
- if(accountAuthenticated)return true;
+ if(accountAuthenticated)return communityEnsure();
  if(!publicRoom.haveCookie){strcpy(accountNotice,"CONNECTING - PLEASE WAIT");return false;}
- if(profileCount){if(profileActive>=profileCount)profileActive=0;if(accountAuthenticate(3,savedProfiles[profileActive].name,savedProfiles[profileActive].token))return true;if(accountLastStatus!=3&&accountLastStatus!=5)return false;}
- strcpy(accountNotice,"PLEASE SIGN IN TO HOST OR JOIN");accountProfileMenu();return accountAuthenticated;
+ if(profileCount){if(profileActive>=profileCount)profileActive=0;if(accountAuthenticate(3,savedProfiles[profileActive].name,savedProfiles[profileActive].token))return communityEnsure();if(accountLastStatus!=3&&accountLastStatus!=5)return false;}
+ strcpy(accountNotice,"PLEASE SIGN IN TO HOST OR JOIN");accountProfileMenu();return accountAuthenticated&&communityEnsure();
 }
 static void accountRefreshProfile(void){if(accountAuthenticated&&accountCall(4,NULL,0,"REFRESHING PROFILE",true)&&accountLink.replyBytes==46)ta_account_profile(&ownProfile,accountLink.reply+2,44);}
 static void accountDirectory(void){
@@ -310,20 +313,21 @@ static void accountLadderView(void){
 #endif
  }
 }
+static void accountRankGuide(void){
+ TaMenuPad pad;menuBegin(&pad);for(;;){unsigned p=menuRead(&pad);if(pump(false)||p&0x100u)return;
+  accountFrame("EGG RANKS","COMPETITIVE RATINGS - BOTH LEADERBOARDS");
+  for(unsigned i=0;i<6;i++){char line[64];unsigned floor=ta_rank_floor(i);if(i<5)snprintf(line,sizeof line,"%s  %u-%u",ta_rank_name(floor),floor,ta_rank_floor(i+1)-1);else snprintf(line,sizeof line,"%s  %u+",ta_rank_name(floor),floor);eggEmblem(42,158+i*36,floor,1);ta_menu_text(screen,88,168+i*36,line,uiText,2);}
+  accountFooter("B BACK","RESULTS / OPPONENT STRENGTH SET POINTS");
+ }
+}
 static void accountLadderMenu(void){
- unsigned choice=0;TaMenuPad pad;menuBegin(&pad);const char*items[]={"1V1 RANKED","PARTY 3-4 PLAYERS","BACK"};
- for(;;){unsigned pressed=menuRead(&pad);if(pump(false)||pressed&0x100)return;choice=menuMove(choice,3,pressed);
-  if(pressed&1){if(choice==2)return;partyLadder=choice==1;accountLadderView();menuBegin(&pad);}
-  accountFrame("LEADERBOARDS","INDEPENDENT RATINGS - SIX EGG RANKS");for(unsigned i=0;i<3;i++)menuRow(175+i*60,items[i],choice==i,3);accountFooter("A SELECT  B BACK",NULL);
+ unsigned choice=0;TaMenuPad pad;menuBegin(&pad);const char*items[]={"1V1 RANKED","PARTY 3-4 PLAYERS","HOW EGG RANKS WORK","BACK"};
+ for(;;){unsigned pressed=menuRead(&pad);if(pump(false)||pressed&0x100)return;choice=menuMove(choice,4,pressed);
+  if(pressed&1){if(choice==3)return;if(choice==2)accountRankGuide();else{partyLadder=choice==1;accountLadderView();}menuBegin(&pad);}
+  accountFrame("LEADERBOARDS","INDEPENDENT RATINGS - SIX EGG RANKS");for(unsigned i=0;i<4;i++)menuRow(174+i*50,items[i],choice==i,2);accountFooter("A SELECT  B BACK",NULL);
  }
 }
-static void accountStatsMenu(void){
- if(!accountEnsure())return;accountRefreshProfile();unsigned choice=0;TaMenuPad pad;menuBegin(&pad);const char*items[]={"PROFILES","REFRESH","BACK"};
- for(;;){unsigned pressed=menuRead(&pad);if(pump(false)||pressed&0x100)return;unsigned moved=pressed;if(pressed&0x40)moved|=0x10;if(pressed&0x80)moved|=0x20;choice=menuMove(choice,3,moved);
-  if(pressed&1){if(choice==2)return;if(choice==0)accountProfileMenu();else accountRefreshProfile();menuBegin(&pad);}
-  accountFrame("MY PROFILE",accountAuthenticated?ownProfile.name:accountNotice);accountStats();menuActions(items,3,choice);
- }
-}
+static void accountStatsMenu(void){communityMyProfileMenu();}
 /* Discovery uses the existing online socket and the deployed party relay.
    Party matches retain the encrypted account session for world and lobby chat. */
 static void accountPartyEndpoint(uint32_t*address,uint16_t*port){
@@ -369,7 +373,7 @@ static int accountBrowseRooms(void){
    }
    menuBegin(&pad);
   }
-  accountFrame("BROWSE ROOMS","1V1 AND 3-4 PLAYER PUBLIC ROOMS");unsigned first=choice>3?choice-3:0;
+  accountFrame("BROWSE ROOMS","1V1 AND 2-4 PLAYER PUBLIC ROOMS");unsigned first=choice>3?choice-3:0;
   for(unsigned row=0;row<4&&first+row<count+2;row++){
    unsigned i=first+row,y=160+row*56;menuTouchChoice(36,(int)y-6,440,47,row,i==choice);char text[80];if(i==choice)accountSelected((int)y-6,47);
    if(i<legacyCount){const char*name=NULL;uint32_t rating=0;for(unsigned n=0;n<namedCount;n++)if(namedRooms[n].id==publicRoom.rooms[i].id){name=namedRooms[n].name;rating=namedRooms[n].rating;}
@@ -377,18 +381,18 @@ static int accountBrowseRooms(void){
     ta_menu_text(screen,48,(int)y,text,i==choice?uiGold:uiText,2);
     snprintf(text,sizeof text,"%06lu SPEED %u %u/2 %s",(unsigned long)publicRoom.rooms[i].id,publicRoom.rooms[i].speed,publicRoom.rooms[i].players,publicRoom.rooms[i].players>=2?(publicRoom.rooms[i].phase==3?"IN GAME":"FULL"):"OPEN");ta_menu_text(screen,48,(int)y+21,text,uiMuted,2);
    }else if(i<count){const TaPartyRoom*r=publicPartyDirectory.rooms+i-legacyCount;
-    snprintf(text,sizeof text,"3-4P %s  %.8s",r->mode?"FOCUS":"AUTO",r->name);ta_menu_text(screen,48,(int)y,text,i==choice?uiGold:uiText,2);
+    snprintf(text,sizeof text,"2-4P %s  %.8s",r->mode?"MANUAL TARGET":"AUTO TARGET",r->name);ta_menu_text(screen,48,(int)y,text,i==choice?uiGold:uiText,2);
     snprintf(text,sizeof text,"%06lu SPEED %u %u/4 %s",(unsigned long)r->id,(unsigned)r->speed,(unsigned)r->count,r->count>=4?"FULL":r->phase?"IN GAME":"LOBBY");ta_menu_text(screen,48,(int)y+21,text,uiMuted,2);
    }else{strcpy(text,i==count?"REFRESH ROOMS":"BACK");ta_menu_text(screen,48,(int)y,text,i==choice?uiGold:uiText,2);}
   }
   selectedParty=choice>=legacyCount&&choice<count;selectedRoom=choice<legacyCount?publicRoom.rooms[choice].id:selectedParty?publicPartyDirectory.rooms[choice-legacyCount].id:0;
-  const char*status=!accountAuthenticated?"PLEASE SIGN IN TO HOST OR JOIN":publicRoom.mode==TA_PUB_JOINING?"JOINING 1V1 ROOM":publicPartyDirectory.error==-304?"UPDATE PARTY RELAY TO R140":publicPartyDirectory.error||(uint32_t)(now-publicPartyDirectory.lastServer)>15000u?"3-4 PLAYER RELAY UNAVAILABLE":!publicPartyDirectory.haveCookie?"CHECKING 3-4 PLAYER RELAY":accountNotice;
+  const char*status=!accountAuthenticated?"PLEASE SIGN IN TO HOST OR JOIN":publicRoom.mode==TA_PUB_JOINING?"JOINING 1V1 ROOM":publicPartyDirectory.error==-304?"UPDATE PARTY RELAY TO R140":publicPartyDirectory.error||(uint32_t)(now-publicPartyDirectory.lastServer)>15000u?"2-4 PLAYER RELAY UNAVAILABLE":!publicPartyDirectory.haveCookie?"CHECKING 2-4 PLAYER RELAY":accountNotice;
   accountRoomFooter(choice<count?"A JOIN":choice==count?"A REFRESH":NULL,status);
  }
 }
 static int accountHostPublicMenu(void){
  unsigned choice=0;TaMenuPad pad;menuBegin(&pad);
- const char*items[]={"1V1 - RANKED","3-4 PLAYERS - AUTO","3-4 PLAYERS - FOCUS","BACK"};
+ const char*items[]={"1V1 - RANKED","2-4 PLAYERS RANK - AUTO TARGET","2-4 PLAYERS RANK - MANUAL TARGET","BACK"};
  for(;;){unsigned pressed=menuRead(&pad);if(pump(false))return -10060;if(pressed&0x100)return 1;if(publicRoom.haveRoom)return 0;choice=menuMove(choice,4,pressed);
   if(pressed&1){if(choice==3)return 1;if(choice){if(accountEnsure()){publicPartyJoinRoom=0;publicPartyHostMode=(int)choice-1;return 3;}menuBegin(&pad);continue;}if(accountEnsure()){lobby.role=0;ta_vs_public_host(&publicRoom);return 1;}menuBegin(&pad);}
   accountFrame("HOST PUBLIC ROOM","CHOOSE YOUR MATCH TYPE");for(unsigned i=0;i<4;i++)menuRow(160+i*54,items[i],i==choice,2);
@@ -417,7 +421,7 @@ static int accountBrowser(uint32_t*localIp,uint16_t previous,const uint8_t*rom,u
  (void)previous;accountPartyDirectoryBegin();accountFrame("ONLINE","CONNECTING TO ONLINE SERVICE");accountFooter("B BACK",NULL);
  unsigned choice=0;bool triedResume=false;uint32_t refreshed=0;
  TaMenuPad pad;menuBegin(&pad);
- const char*items[]={"PUBLIC ROOMS","PROFILE","WORLD CHAT","LEADERBOARDS","BACK"};
+ const char*items[]={"PUBLIC ROOMS","PROFILE","WORLD CHAT","EVENTS","PLAYER PROFILES","LEADERBOARDS","BACK"};
  taSocialReset();
  for(;;){
   unsigned pressed=menuRead(&pad);
@@ -428,16 +432,19 @@ static int accountBrowser(uint32_t*localIp,uint16_t previous,const uint8_t*rom,u
   int error=pump(false);if(error){taSocialCancel();return error;}
   if(publicRoom.haveRoom){taSocialCancel();return 0;}
   if(publicRoom.haveCookie&&!triedResume){triedResume=true;if(!accountAuthenticated&&profileCount&&accountLink.ready)accountAuthenticate(3,savedProfiles[profileActive].name,savedProfiles[profileActive].token);}
+  if(accountAuthenticated&&!communityReady){taSocialCancel();if(!communityEnsure()){leavePublic();ta_vs_udp_close(&transport);return 1;}menuBegin(&pad);}
   if(accountAuthenticated)taSocialTick(GetTickCount(),true);
-  choice=menuMove(choice,5,pressed);
+  choice=menuMove(choice,7,pressed);
   if(pressed&1){
    taSocialCancel();
-   if(choice==4){leavePublic();ta_vs_udp_close(&transport);return 1;}
+   if(choice==6){leavePublic();ta_vs_udp_close(&transport);return 1;}
    if(choice==0){int result=accountPublicRoomsMenu();if(result==0)return 0;if(result<0)return result;
     if(result==3){publicPartyBrowsing=false;return 3;}
     if(result==2){leavePublic();ta_vs_udp_close(&transport);int reconnect=beginLobby(rom,bytes,1,true);if(reconnect)return reconnect;triedResume=false;taSocialReset();accountPartyDirectoryBegin();} }
    else if(choice==1)accountStatsMenu();
    else if(choice==2)taSocialChatMenu();
+   else if(choice==3)communityEvents();
+   else if(choice==4)communityPlayers();
    else accountLadderMenu();
    menuBegin(&pad);
   }
@@ -445,7 +452,7 @@ static int accountBrowser(uint32_t*localIp,uint16_t previous,const uint8_t*rom,u
   else if(publicAutoAttempted&&!publicClock.armed)strcpy(sub,"GETTING NETWORK ADDRESS");
   else strcpy(sub,accountNotice);
   accountFrame("ONLINE",sub);
-  for(unsigned i=0;i<5;i++)menuRow(160+i*43,items[i],choice==i);
+  unsigned first=choice>5?choice-5:0;for(unsigned r=0;r<6&&first+r<7;r++)menuRow(160+r*36,items[first+r],choice==first+r,2);
 
   accountFooter("D-PAD MOVE  A SELECT  B BACK",NULL);
  }
@@ -499,7 +506,7 @@ static const char*controlPhysical(unsigned mask){
  for(unsigned i=0;i<14;i++)if(mask&bits[i]){if(text[0])strcat(text,"/");if(strlen(text)+strlen(names[i])<sizeof text-1)strcat(text,names[i]);}return text;
 }
 static void accountControlsMenu(void){
- static const char*actions[]={"UP","DOWN","LEFT","RIGHT","SWAP","RAISE","PAUSE","CYCLE JUNK"};
+ static const char*actions[]={"UP","DOWN","LEFT","RIGHT","SWAP","RAISE","PAUSE","TARGET"};
  unsigned player=0,choice=0;int binding=-1;bool released=false,saved=true;TaMenuPad pad;menuBegin(&pad);
  for(;;){uint16_t raw[2];TA_Input_Poll(raw);unsigned pressed=menuUpdate(&pad,raw[0]);
   if(binding>=0){unsigned value=raw[player];if(value&0x4000u)value=(value&~0x4000u)|0x1000u;if(!value)released=true;

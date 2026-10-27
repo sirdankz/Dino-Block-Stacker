@@ -5,7 +5,7 @@ import android.content.SharedPreferences;
 
 /** Device-local display settings. No gameplay or network state is stored here. */
 final class BoardLayouts {
-    static final String[] NAMES={"Ranked 1v1","LAN 1v1","AUTO party | 2 players","FOCUS party | 2 players","AUTO party | 3 players","FOCUS party | 3 players","AUTO party | 4 players","FOCUS party | 4 players"};
+    static final String[] NAMES={"Ranked 1v1","LAN 1v1","Auto target | 2 players","Manual target | 2 players","Auto target | 3 players","Manual target | 3 players","Auto target | 4 players","Manual target | 4 players"};
     private static final String PREFS="dino_board_layouts_v1";
     static final class State {
         int id;boolean custom,full;float[] pose;

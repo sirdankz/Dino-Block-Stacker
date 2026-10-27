@@ -5,6 +5,7 @@
 #include "ta_vs_account.h"
 #include "../../third_party/monocypher/monocypher.h"
 #include <string.h>
+#include "ta_vs_rank.h"
 static uint32_t r32(const uint8_t*p){return ((uint32_t)p[0]<<24)|((uint32_t)p[1]<<16)|((uint32_t)p[2]<<8)|p[3];}
 static void w64(uint8_t*p,uint64_t x){for(unsigned i=0;i<8;i++)p[7-i]=(uint8_t)(x>>(8*i));}
 int ta_account_key(uint8_t out[32],const uint8_t secret[32],const uint8_t peer[32],const uint8_t client[32],const uint8_t server[32]){
@@ -38,4 +39,4 @@ int ta_account_profile(TaAccountProfile*p,const uint8_t*b,size_t n){
  unsigned i;for(i=0;i<16&&p->name[i];i++)if(!((p->name[i]>='A'&&p->name[i]<='Z')||(p->name[i]>='0'&&p->name[i]<='9')||p->name[i]=='-'||p->name[i]=='_'))return -1;
  if(i<3||i==16)return -1;p->rating=r32(b+16);p->wins=r32(b+20);p->losses=r32(b+24);p->draws=r32(b+28);p->streak=(int32_t)r32(b+32);p->best=r32(b+36);p->rank=r32(b+40);return 0;
 }
-const char*ta_account_tier(uint32_t r){return r<1000?"ROTTEN EGG":r<1200?"BRONZE EGG":r<1400?"SILVER EGG":r<1600?"GOLD EGG":r<1800?"PLATINUM EGG":"MASTER EGG";}
+const char*ta_account_tier(uint32_t r){return ta_rank_name(r);}

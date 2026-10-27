@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.2.9
+
+- Enclose all three event-entry lines in the selection highlight and matching touch area.
+- Rename public party hosting choices to 2-4 PLAYERS RANK - AUTO TARGET and 2-4 PLAYERS RANK - MANUAL TARGET.
+- Label the rebindable junk-recipient control TARGET for both player ports.
+- Use Auto Target and Manual Target labels in public room lists, lobbies and Android layout settings.
+
+## 1.2.8
+
+- Update time-setup wording and offer manual current date/time entry without selecting a location.
+- Save a 12-hour/24-hour preference per profile and apply it to event dates, availability and time controls.
+- Use Y as space when entering event text; expose console case switching on L.
+- Rebalance both egg-tier scales around the existing 1,000 rating baseline, preserving points and records.
+- Add progress toward the next egg division and a rank guide.
+
+## 1.2.7
+
+- Replace fixed GMT/UTC timezone choices with geographic locations and familiar US/Canada choices.
+- Apply local daylight-saving rules automatically, including non-DST locations such as Arizona and Hawaii.
+- Require legacy fixed-offset profiles to select a location once, without guessing from their offset.
+- Repair legacy fixed-offset recurring events after location selection while preserving one-time event instants.
+
+## 1.2.6
+
+- Add Events with localized dates, repeating days, interested-player lists, and organizer editing/cancellation.
+- Require online profiles to choose an IANA time zone. Event dates and weekly availability use server time and daylight-saving rules.
+- Add public player profiles, optional Discord usernames, and overnight weekly availability.
+- Display 14 compact chat messages with blue usernames, a scrollbar, paged history, touch scrolling, and sender profile access.
+
 ## 1.2.5
 
 - Set first-run and restored menu/results music to 10% and game audio to 50%, retaining 100% master volume.
@@ -118,7 +147,7 @@
 
 - Restore the original offline board arrangement for Android ranked and LAN 1v1 by default.
 - Add saved Android board positioning and resizing for each multiplayer mode and player count.
-- Add a pre-match layout editor and a live editor through Android Back → Board layout.
+- Add a pre-match layout editor and a live editor through Android Back â†’ Board layout.
 - Use the local character background to fill party scenery on Xbox and Android.
 - Retain cached opponent updates while editing layout geometry.
 
