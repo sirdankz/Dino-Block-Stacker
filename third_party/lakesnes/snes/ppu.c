@@ -281,6 +281,9 @@ static int ppu_spriteX(const Ppu* ppu, uint8_t index);
 static inline void ppu_xboxInvalidateTileWord(uint16_t wordAdr);
 static inline void ppu_xboxInvalidateTileCache(void);
 static inline void ppu_xboxInvalidatePaletteCache(void);
+#if TA_R130_PALETTE_DIRTY
+static inline void ppu_xboxInvalidatePaletteEntry(Ppu*,unsigned);
+#endif
 void ppu_xboxInvalidateSpriteCache(void);
 #endif
 
@@ -1801,6 +1804,13 @@ static uint32_t s_mode1SubMathXrgb[256 * 256] __attribute__((aligned(64)));
 #endif
 static uint32_t s_mode1SubFixedXrgb[256];
 static bool s_mode1PaletteValid = false;
+#if TA_R130_PALETTE_DIRTY
+/* Host-only cache state; never serialized or visible to the emulated machine. */
+static uint32_t s_r130PaletteDirty[8];
+static bool s_r130PaletteAllDirty=true;
+static unsigned s_r130PaletteMode;
+static const Ppu* s_r130PaletteOwner;
+#endif
 static uint8_t s_mode1PaletteBrightness = 0xff;
 static bool s_mode1MathPaletteValid = false;
 static uint32_t s_mode1MathKey = 0;
@@ -2144,17 +2154,75 @@ static inline void ppu_xboxInvalidatePaletteCache(void) {
   s_mode1PaletteValid = false;
   s_mode1MathPaletteValid = false;
   s_mode1SubMathValid = false;
+#if TA_R130_PALETTE_DIRTY
+  s_r130PaletteAllDirty=true;
+  memset(s_r130PaletteDirty,0,sizeof s_r130PaletteDirty);
+#endif
 }
+#if TA_R130_PALETTE_DIRTY
+static inline void ppu_xboxInvalidatePaletteEntry(Ppu* ppu,unsigned index) {
+  /* Reassigned panel colors can read another CGRAM entry. Tint fingerprints
+   * and the READY fade also affect more than the entry being written. */
+  if(s_r130PaletteOwner!=ppu ||
+     (taPanelStyle && (taPanelStyle==1 || index==0xa1 || index==0xb1 || index==0x11))) {
+    ppu_xboxInvalidatePaletteCache();
+    return;
+  }
+  s_r130PaletteDirty[index>>5]|=1u<<(index&31);
+  s_mode1PaletteValid=false;
+  s_mode1MathPaletteValid=false;
+  s_mode1SubMathValid=false;
+}
+#endif
+
+#if TA_R130_PALETTE_DIRTY
+static inline void ppu_xboxBuildPaletteEntry(Ppu* ppu,const uint8_t* bright,unsigned i) {
+    const uint16_t c = ta_panel_color(ppu->cgram,i,ppu->mode);
+    const int r = c & 0x1f;
+    const int g = (c >> 5) & 0x1f;
+    const int b = (c >> 10) & 0x1f;
+#if defined(TA_R99_PALETTE_LANES) && TA_R99_PALETTE_LANES
+    s_taR99Color5[i]=(uint32_t)b | ((uint32_t)g<<8) | ((uint32_t)r<<16);
+#endif
+    s_mode1ColorXrgb[i] = (uint32_t)bright[b] |
+                          ((uint32_t)bright[g] << 8) |
+                          ((uint32_t)bright[r] << 16);
+}
+#endif
 
 static inline void ppu_xboxBuildPalette(Ppu* ppu) {
   static uint32_t optionRevision;
   if(optionRevision!=taPanelRevision){optionRevision=taPanelRevision;ppu_xboxInvalidatePaletteCache();}
   const uint8_t br = ppu->brightness & 0x0f;
+#if TA_R130_PALETTE_DIRTY
+  const unsigned mode=ppu->mode==2;
+  const bool full=s_r130PaletteAllDirty || s_mode1PaletteBrightness!=br ||
+      s_r130PaletteMode!=mode || s_r130PaletteOwner!=ppu;
+  if(__builtin_expect(s_mode1PaletteValid && !full,1))return;
+#else
   if(__builtin_expect(s_mode1PaletteValid && s_mode1PaletteBrightness == br, 1)) return;
+#endif
 #if defined(TA_R43_LINE_OUTPUT_CACHE) && TA_R43_LINE_OUTPUT_CACHE && defined(TA_R32_BG_LINE_CACHE) && TA_R32_BG_LINE_CACHE
   ppu_taR43ObservePalette(ppu);
 #endif
   const uint8_t* bright = s_brightnessLut[br];
+#if TA_R130_PALETTE_DIRTY
+  if(full) {
+    for(unsigned i=0;i<256;i++)ppu_xboxBuildPaletteEntry(ppu,bright,i);
+    memset(s_r130PaletteDirty,0,sizeof s_r130PaletteDirty);
+  } else {
+    for(unsigned bank=0;bank<8;bank++) {
+      uint32_t dirty=s_r130PaletteDirty[bank];
+      while(dirty) {
+        unsigned i=bank*32u+(unsigned)__builtin_ctz(dirty);
+        dirty&=dirty-1;
+        ppu_xboxBuildPaletteEntry(ppu,bright,i);
+      }
+      s_r130PaletteDirty[bank]=0;
+    }
+  }
+  s_r130PaletteAllDirty=false;s_r130PaletteMode=mode;s_r130PaletteOwner=ppu;
+#else
   for(int i = 0; i < 256; ++i) {
     const uint16_t c = ta_panel_color(ppu->cgram,i,ppu->mode);
     const int r = c & 0x1f;
@@ -2167,12 +2235,17 @@ static inline void ppu_xboxBuildPalette(Ppu* ppu) {
                           ((uint32_t)bright[g] << 8) |
                           ((uint32_t)bright[r] << 16);
   }
+#endif
   s_mode1PaletteBrightness = br;
   s_mode1PaletteValid = true;
 #if defined(TA_R127_GPU_INDEXED) && TA_R127_GPU_INDEXED
   if(++s_r127PaletteSerial==0)s_r127PaletteSerial=1;
 #endif
   s_mode1MathPaletteValid = false;
+#if TA_R130_PALETTE_DIRTY
+  /* Full rebuilds can also follow an owner/mode change, not a CGRAM write. */
+  s_mode1SubMathValid = false;
+#endif
 }
 
 /* Fixed-colour maths is a palette transform when the sub screen is not part
@@ -3944,7 +4017,11 @@ static void ppu_xboxMode1RenderLine(Ppu* ppu, int y) {
   if((!anyMath || ppu->preventMathMode == 3) && ppu->clipMode == 0) {
     TA_R84_SCOPE(r84Direct,TA84_DIRECT);
 #if defined(TA_R129_GPU_DIRECT_PALETTE) && TA_R129_GPU_DIRECT_PALETTE
-    if(ppu->mode==2 && externalOut && s_r126Managed && s_r129Enabled && s_r127Enabled &&
+    if((ppu->mode==2
+#if TA_R130_MODE1_INDEXED
+        || ppu->mode==1
+#endif
+       ) && externalOut && s_r126Managed && s_r129Enabled && s_r127Enabled &&
        ppu_taR129Capture(ppu,out,nativeRow,legacyRow)){
       TA_R28_ENDLINE(0);return;
     }
@@ -5856,9 +5933,17 @@ void ppu_write(Ppu* ppu, uint8_t adr, uint8_t val) {
       if(!ppu->cgramSecondWrite) {
         ppu->cgramBuffer = val;
       } else {
+#if defined(XBOX_PORT) && TA_R130_PALETTE_DIRTY
+        const unsigned index=ppu->cgramPointer++;
+        const uint16_t color=(val<<8)|ppu->cgramBuffer;
+        const uint16_t previous=ppu->cgram[index];
+        ppu->cgram[index]=color;
+        if(previous!=color)ppu_xboxInvalidatePaletteEntry(ppu,index);
+#else
         ppu->cgram[ppu->cgramPointer++] = (val << 8) | ppu->cgramBuffer;
 #if defined(XBOX_PORT)
         ppu_xboxInvalidatePaletteCache();
+#endif
 #endif
       }
       ppu->cgramSecondWrite = !ppu->cgramSecondWrite;

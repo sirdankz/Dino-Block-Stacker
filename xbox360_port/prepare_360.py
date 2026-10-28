@@ -61,7 +61,7 @@ s=s.replace('"D:\\\\ta-server.txt"','"game:\\\\ta-server.txt"')
 s+='\nextern "C" void TA_360_FrontendClose(void){partyClose();releaseGame();freeMenuCache();ta_vs_local_bind(NULL);leavePublic();ta_vs_udp_close(&transport);publicMode=false;}\n'
 frontOut=TREE/'src/xbox/ta_360_frontend.cpp';write(frontOut,cpp_c(s));compiled.append(frontOut)
 # x86 MMX/NV2A code is absent; CPU/APU timing and game rules retain shared flags.
-remove={'ZAMN_R23_MMX_PPU','ZAMN_R31_MMX_TRANSPARENT_EARLYOUT','TA_LOG_INTERVAL_FRAMES'}
+remove={'TA_R130_PALETTE_DIRTY','TA_R130_MATH_MASK','TA_R130_MODE1_INDEXED','ZAMN_R23_MMX_PPU','ZAMN_R31_MMX_TRANSPARENT_EARLYOUT','TA_LOG_INTERVAL_FRAMES'}
 zero={'TA_R37_STREAM_UPLOAD','TA_R102_MODE2_DUAL_PUT','TA_R124_MODE2_STREAM','TA_R126_DIRECT_TARGET','TA_R126_GPU_SUBTRACT','TA_R127_GPU_INDEXED','TA_R128_GPU_ATLAS_CACHE','TA_R129_GPU_DIRECT_PALETTE'}
 defs=[d for d in json.loads((ROOT/'rxdk.project.json').read_text())['configurations']['PlayN22PublicNoLog']['defines'] if d.split('=')[0] not in remove|zero]
 defs+=[n+'=0' for n in sorted(zero)]+['TA_XBOX360=1','_XBOX_CRT_DEPRECATE_INSECURE','__STDC_CONSTANT_MACROS','__STDC_LIMIT_MACROS']

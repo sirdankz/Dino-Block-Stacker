@@ -29,7 +29,7 @@ static void taCommunityInvalidate(void){communityReady=false;communityClock.know
 static bool communityCall(unsigned op,const void*data,unsigned n,const char*label){
  if(n>549)return false;uint8_t request[550];request[0]=(uint8_t)op;if(n)memcpy(request+1,data,n);
  bool ok=accountCall(TA_COMMUNITY_COMMAND,request,n+1,label);
- if(!ok&&accountLastStatus!= -2&&accountLink.replyBytes<2)strcpy(accountNotice,"EVENTS / PROFILES NEED SERVER V1.2.9");
+ if(!ok&&accountLastStatus!= -2&&accountLink.replyBytes<2)strcpy(accountNotice,"EVENTS / PROFILES NEED SERVER V1.3.0");
  return ok;
 }
 static bool communityParseProfile(TaCommunityProfile*out){
@@ -46,7 +46,7 @@ static bool communityParseProfile(TaCommunityProfile*out){
 static bool communityLoadSelf(void){
  if(!accountAuthenticated||!communityCall(0,NULL,0,"SYNCING PROFILE AND SERVER TIME")||!communityParseProfile(&communitySelf))return false;
  ownProfile=communitySelf.stats;strcpy(communityOwner,ownProfile.name);communityReady=ta_community_configured_zone(communitySelf.zone);
- if(!communityCall(12,NULL,0,"SYNCING TIME FORMAT")||accountLink.replyBytes!=3||accountLink.reply[2]>1){communityReady=false;strcpy(accountNotice,"TIME OPTIONS NEED PRIVATE SERVER V1.2.9");return false;}
+ if(!communityCall(12,NULL,0,"SYNCING TIME FORMAT")||accountLink.replyBytes!=3||accountLink.reply[2]>1){communityReady=false;strcpy(accountNotice,"TIME OPTIONS NEED PRIVATE SERVER V1.3.0");return false;}
  communityTwelve=accountLink.reply[2]!=0;return true;
 }
 static bool communitySaveProfile(const TaCommunityProfile*p){

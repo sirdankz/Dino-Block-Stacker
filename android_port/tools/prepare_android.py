@@ -23,7 +23,7 @@ s+='\nextern "C" void ta_android_frontend_close(void){TA_Background_Set(NULL);ta
 # Keep native CPU, APU rational timing, guest guards and network definitions.
 # Select existing portable CPU-renderer fallbacks for x86-only MMX/NV2A output.
 c=json.loads((r/'rxdk.project.json').read_text())['configurations']['PlayN22PublicLogged']
-remove={'XBOX','_XBOX','NDEBUG','ZAMN_R23_MMX_PPU','ZAMN_R31_MMX_TRANSPARENT_EARLYOUT','TA_R37_STREAM_UPLOAD','TA_R102_MODE2_DUAL_PUT','TA_R124_MODE2_STREAM','TA_R126_DIRECT_TARGET','TA_R126_GPU_SUBTRACT','TA_R127_GPU_INDEXED','TA_R128_GPU_ATLAS_CACHE','TA_R129_GPU_DIRECT_PALETTE','TA_LOG_INTERVAL_FRAMES'}
+remove={'XBOX','_XBOX','TA_R130_PALETTE_DIRTY','TA_R130_MATH_MASK','TA_R130_MODE1_INDEXED','NDEBUG','ZAMN_R23_MMX_PPU','ZAMN_R31_MMX_TRANSPARENT_EARLYOUT','TA_R37_STREAM_UPLOAD','TA_R102_MODE2_DUAL_PUT','TA_R124_MODE2_STREAM','TA_R126_DIRECT_TARGET','TA_R126_GPU_SUBTRACT','TA_R127_GPU_INDEXED','TA_R128_GPU_ATLAS_CACHE','TA_R129_GPU_DIRECT_PALETTE','TA_LOG_INTERVAL_FRAMES'}
 defs=[d for d in c['defines'] if d.split('=')[0] not in remove]+[n+'=0' for n in sorted(remove) if n not in {'XBOX','_XBOX','NDEBUG','ZAMN_R23_MMX_PPU','ZAMN_R31_MMX_TRANSPARENT_EARLYOUT','TA_LOG_INTERVAL_FRAMES'}]+['TA_ANDROID=1']
 (out/'android_defines.cmake').write_text('set(TA_ANDROID_DEFINES\n'+''.join('  "'+d+'"\n' for d in defs)+')\n',encoding='ascii',newline='\n')
 (out/'android_defines.json').write_text(json.dumps(defs,indent=2)+'\n')

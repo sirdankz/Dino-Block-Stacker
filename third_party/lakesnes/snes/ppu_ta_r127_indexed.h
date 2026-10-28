@@ -128,7 +128,18 @@ static bool ppu_taR127Capture(Ppu*p,uint32_t*out,unsigned row,unsigned legacy){
  const uint64_t fixedRow=0xfdfdfdfdfdfdfdfdULL;
  const uint64_t fixedIndex=(uint64_t)s_r127FixedIndex*0x0101010101010101ULL;
  uint64_t enabled[6];unsigned count=0;
+#if TA_R130_MATH_MASK
+ /* Resolved layer bytes are BG0..BG3, OBJ4 or backdrop5. Compare the
+  * smaller side of this six-layer set; all/single-layer masks avoid a
+  * six-comparison loop in every eight-pixel group. */
+ unsigned active=0;for(unsigned l=0;l<6;l++)active+=p->mathEnabled[l]?1u:0u;
+ const bool inverted=active>3;
+ const uint64_t inverse=inverted?~0ULL:0ULL;
+ for(unsigned l=0;l<6;l++)if((bool)p->mathEnabled[l]!=inverted)
+   enabled[count++]=(uint64_t)l*0x0101010101010101ULL;
+#else
  for(unsigned l=0;l<6;l++)if(p->mathEnabled[l])enabled[count++]=(uint64_t)l*0x0101010101010101ULL;
+#endif
  for(unsigned x=0;x<256;x+=8){
   uint64_t m,l,s,sl,w=s_r127Windows[(s_taWindowMask[5][x>>5]>>(x&31))&255u];
   memcpy(&m,s_taR94ReadMainPix+x,8);memcpy(&l,s_taR94ReadMainLayer+x,8);
@@ -163,7 +174,11 @@ static bool ppu_taR127Capture(Ppu*p,uint32_t*out,unsigned row,unsigned legacy){
 #else
    "add $8, %%edx\n\tdec %%ecx\n\tjnz 1b\n\t"
 #endif
-   "2: pand %[w], %%mm3\n\t"
+   "2:\n\t"
+#if TA_R130_MATH_MASK
+   "pxor %[inverse], %%mm3\n\t"
+#endif
+   "pand %[w], %%mm3\n\t"
    "movq %[sl], %%mm2\n\t"
    "pcmpeqb %[five], %%mm2\n\t"
    "movq %[s], %%mm1\n\t"
@@ -199,6 +214,9 @@ static bool ppu_taR127Capture(Ppu*p,uint32_t*out,unsigned row,unsigned legacy){
    "movq %%mm6, 24(%[out])"
    : : [m] "m"(m),[l] "m"(l),[s] "m"(s),[sl] "m"(sl),[w] "m"(w),
        [five] "m"(five),[mr] "m"(mainRow),[fr] "m"(fixedRow),[fi] "m"(fixedIndex),
+#if TA_R130_MATH_MASK
+       [inverse] "m"(inverse),
+#endif
        [count] "m"(count),[enabled] "r"(enabled),[out] "r"(out+x)
    : "ecx","edx","mm0","mm1","mm2","mm3","mm4","mm5","mm6","memory");
  }

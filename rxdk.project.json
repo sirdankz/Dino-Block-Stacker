@@ -231,7 +231,10 @@
         "TA_VS_AUTO_NETWORK=1",
         "TA_VS_PERSIST_PROFILES=1",
         "TA_VS_TITLE_SAVES=1",
-        "TA_DINO_BRAND=1"
+        "TA_DINO_BRAND=1",
+        "TA_R130_PALETTE_DIRTY=1",
+        "TA_R130_MATH_MASK=1",
+        "TA_R130_MODE1_INDEXED=1"
       ],
       "createIso": false,
       "forceCopy": false,
@@ -485,7 +488,10 @@
         "TA_VS_AUTO_NETWORK=1",
         "TA_VS_PERSIST_PROFILES=1",
         "TA_VS_TITLE_SAVES=1",
-        "TA_DINO_BRAND=1"
+        "TA_DINO_BRAND=1",
+        "TA_R130_PALETTE_DIRTY=1",
+        "TA_R130_MATH_MASK=1",
+        "TA_R130_MODE1_INDEXED=1"
       ],
       "createIso": false,
       "forceCopy": false,

@@ -102,7 +102,7 @@ static void installTextures(const PcTextures&t){memcpy(frames,t.frames,sizeof fr
 static bool switchRenderer(const uint32_t*p,int height,const char*driver){
  int w,h,x,y;SDL_GetWindowSize(pcWindow,&w,&h);SDL_GetWindowPosition(pcWindow,&x,&y);auto flags=SDL_GetWindowFlags(pcWindow);
  if(flags&SDL_WINDOW_FULLSCREEN){w=windowWidth;h=windowHeight;}
- SDL_Window*nextWindow=SDL_CreateWindow("Dino Block Stacker v1.2.9",w,h,SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY|SDL_WINDOW_HIDDEN);
+ SDL_Window*nextWindow=SDL_CreateWindow("Dino Block Stacker v1.3.0",w,h,SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY|SDL_WINDOW_HIDDEN);
  if(!nextWindow)return false;SDL_SetWindowMinimumSize(nextWindow,640,480);SDL_SetWindowPosition(nextWindow,x,y);
  SDL_Renderer*next=SDL_CreateRenderer(nextWindow,driver);PcTextures textures;
  if(!next){SDL_DestroyWindow(nextWindow);return false;}
@@ -142,7 +142,7 @@ extern "C" HRESULT TA_Video_Init(void){
  sceneValid=hudValid=duelValid=false;opponentDirty=opponent!=NULL;memset(have,0,sizeof have);memset(revision,0,sizeof revision);rosterRevision=~0u;turn=0;
  int w=960,h=720,full=0;std::string path=std::string(TA_PC_SaveDirectory())+"/window.ini";FILE*f=fopen(path.c_str(),"r");if(f){fscanf(f,"%d %d %d",&w,&h,&full);fclose(f);}if(TA_Options_Loaded())full=(int)TA_Options_Get(TA_OPT_FULLSCREEN);else TA_Options_Set(TA_OPT_FULLSCREEN,full?1:0);w=std::clamp(w,640,3840);h=std::clamp(h,480,2160);
  windowWidth=w;windowHeight=h;
- pcWindow=SDL_CreateWindow("Dino Block Stacker v1.2.9",w,h,SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY);if(!pcWindow)return E_FAIL;SDL_SetWindowMinimumSize(pcWindow,640,480);
+ pcWindow=SDL_CreateWindow("Dino Block Stacker v1.3.0",w,h,SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY);if(!pcWindow)return E_FAIL;SDL_SetWindowMinimumSize(pcWindow,640,480);
  const char*hint=SDL_GetHint(SDL_HINT_RENDER_DRIVER);rendererOverride=hint&&*hint;
  loadRendererConfig();
  const char*driver=rendererConfig.mode?rendererDrivers[rendererConfig.mode]:rendererConfig.autoOpenGL?"opengl":NULL;

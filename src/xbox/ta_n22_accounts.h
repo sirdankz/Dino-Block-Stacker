@@ -82,7 +82,7 @@ struct TaMenuMusicScope {
 static void accountFrame(const char*title,const char*sub){
  TA_Music_SetScene(taMenuMusicScene);
  TA_Menu_Begin(title);menuTouchRowIndex=0;
- ta_n17_backdrop();ta_menu_text(screen,36,34,"DINO BLOCK STACKER",0x007dd9e8,3);ta_menu_text(screen,406,34,"V1.2.9",uiMuted,2);ta_vs_lan_text_box(screen,36,65,440,24,title,uiText,4);
+ ta_n17_backdrop();ta_menu_text(screen,36,34,"DINO BLOCK STACKER",0x007dd9e8,3);ta_menu_text(screen,406,34,"V1.3.0",uiMuted,2);ta_vs_lan_text_box(screen,36,65,440,24,title,uiText,4);
  if(sub)ta_vs_lan_text_box(screen,36,97,440,32,sub,uiMuted,2);
  /* The shared skin already includes the content and footer surfaces. */
 }

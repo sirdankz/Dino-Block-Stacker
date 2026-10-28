@@ -38,7 +38,7 @@ s=s.replace('FILE*f=fopen("D:\\\\ta-server.txt","rb");','FILE*f=NULL;')
 s+='\nextern "C" void TA_PC_FrontendClose(void){partyClose();releaseGame();freeMenuCache();ta_vs_local_bind(NULL);leavePublic();ta_vs_udp_close(&transport);publicMode=false;}\n'
 s+='extern "C" void TA_PC_ShutdownFrontend(void){TA_PC_FrontendClose();taPresenceEnabled=false;TA_Background_Set(NULL);taPresenceDrop(GetTickCount(),0);}\n'
 write(OUT/'shared/src/xbox/ta_pc_frontend.cpp',s)
-remove={'XBOX','_XBOX','ZAMN_R23_MMX_PPU','ZAMN_R31_MMX_TRANSPARENT_EARLYOUT','TA_LOG_INTERVAL_FRAMES'}
+remove={'XBOX','_XBOX','TA_R130_PALETTE_DIRTY','TA_R130_MATH_MASK','TA_R130_MODE1_INDEXED','ZAMN_R23_MMX_PPU','ZAMN_R31_MMX_TRANSPARENT_EARLYOUT','TA_LOG_INTERVAL_FRAMES'}
 zero={'TA_R37_STREAM_UPLOAD','TA_R102_MODE2_DUAL_PUT','TA_R124_MODE2_STREAM','TA_R126_DIRECT_TARGET','TA_R126_GPU_SUBTRACT','TA_R127_GPU_INDEXED','TA_R128_GPU_ATLAS_CACHE','TA_R129_GPU_DIRECT_PALETTE'}
 defs=[d for d in json.loads((ROOT/'rxdk.project.json').read_text())['configurations']['PlayN22PublicNoLog']['defines'] if d.split('=')[0] not in remove|zero]
 defs += [d+'=0' for d in sorted(zero)]+['TA_PC=1','TA_VS_HOST=1','TA_NO_LOG=1','WIN32_LEAN_AND_MEAN','NOMINMAX','_CRT_SECURE_NO_WARNINGS','_WINSOCK_DEPRECATED_NO_WARNINGS','_WIN32_WINNT=0x0A00','SDL_MAIN_HANDLED=1']

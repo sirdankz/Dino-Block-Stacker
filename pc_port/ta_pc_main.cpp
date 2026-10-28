@@ -41,7 +41,7 @@ int WINAPI WinMain(HINSTANCE,HINSTANCE,LPSTR,int){
  SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_APPLICATION_DIR|LOAD_LIBRARY_SEARCH_SYSTEM32);
  SDL_SetMainReady();bool winsock=false,timer=false;int result=0;
  try{
-  SDL_SetAppMetadata("Dino Block Stacker","1.2.9","org.dinoblockstacker.pc");if(!SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_GAMEPAD))throw std::runtime_error(SDL_GetError());
+  SDL_SetAppMetadata("Dino Block Stacker","1.3.0","org.dinoblockstacker.pc");if(!SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_GAMEPAD))throw std::runtime_error(SDL_GetError());
   pcStorageInit();TA_Options_Init(TA_PC_SaveDirectory());WSADATA data;if(WSAStartup(MAKEWORD(2,2),&data))throw std::runtime_error("Windows networking initialization failed.");winsock=true;pcNetworkInit();timer=timeBeginPeriod(1)==TIMERR_NOERROR;
   if(FAILED(TA_Video_Init()))throw std::runtime_error(SDL_GetError());TA_Input_Init();if(FAILED(TA_Audio_Init()))message("Audio output is unavailable. The game will continue without sound.",SDL_MESSAGEBOX_WARNING);
   std::vector<uint8_t> rom;fs::path requested;int argc=0;LPWSTR*argv=CommandLineToArgvW(GetCommandLineW(),&argc);
